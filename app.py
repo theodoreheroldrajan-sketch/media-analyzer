@@ -1,10 +1,18 @@
 import base64
+import os
 import streamlit as st
 import pandas as pd
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv()  # local dev reads .env
+
+# Streamlit Cloud: mirror st.secrets into env so Anthropic() picks it up
+try:
+    if "ANTHROPIC_API_KEY" in st.secrets:
+        os.environ["ANTHROPIC_API_KEY"] = st.secrets["ANTHROPIC_API_KEY"]
+except Exception:
+    pass
 
 # ---- Variable schema -----------------------------------------------------
 # Claude is forced (via tool_choice) to return a JSON object matching this
