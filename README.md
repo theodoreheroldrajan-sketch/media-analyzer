@@ -1,2 +1,23 @@
-# media-analyzer
-Creative analyzer — find which variables in ad creatives correlate with performance.
+# Creative Media Analyser
+
+Upload ad creatives and performance data. Extract structured creative variables using AI. Discover which visual patterns correlate with better performance for your brand.
+
+## Stack
+
+- **Frontend:** Next.js (App Router), TypeScript, Tailwind CSS
+- **Backend:** Next.js Route Handlers
+- **Database:** Supabase Postgres + Storage
+- **AI:** Anthropic Claude Sonnet (structured extraction via tool use)
+
+## Getting Started
+
+```bash
+cp .env.local.example .env.local
+# Fill in your Supabase and Anthropic keys
+npm install
+npm run dev
+```
+
+## Legacy
+
+The original Streamlit prototype is preserved in `legacy/` for reference.
