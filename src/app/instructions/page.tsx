@@ -2,167 +2,291 @@ import Link from "next/link";
 
 export default function InstructionsPage() {
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12 space-y-10">
-      <div>
-        <h1 className="text-2xl font-bold mb-2">Before You Upload</h1>
-        <p className="text-zinc-500 dark:text-zinc-400">
-          Read this carefully. The tool only works if your creative files can be
-          linked to performance data.
+    <div className="page">
+      <div className="page-head">
+        <p className="page-eyebrow">Step 03 of 09 · Required reading</p>
+        <h1 className="page-title">Before you upload</h1>
+        <p className="page-sub">
+          This page is the difference between useful results and noise. Read it.
+          If creatives can&apos;t be linked to performance rows, the analysis is
+          meaningless.
         </p>
       </div>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">What you need</h2>
-        <ul className="list-disc pl-5 text-sm text-zinc-600 dark:text-zinc-400 space-y-1">
-          <li>Your ad creative files (PNG, JPG, JPEG)</li>
-          <li>
-            A performance export CSV from Meta Ads, Google Ads, or any ad
-            reporting source
-          </li>
-        </ul>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">
-          How creatives connect to performance rows
-        </h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border border-zinc-200 dark:border-zinc-800">
-            <thead className="bg-zinc-50 dark:bg-zinc-900">
-              <tr>
-                <th className="text-left px-3 py-2 font-medium">Method</th>
-                <th className="text-left px-3 py-2 font-medium">How it works</th>
-                <th className="text-left px-3 py-2 font-medium">Confidence</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              <tr>
-                <td className="px-3 py-2">Exact filename match</td>
-                <td className="px-3 py-2 text-zinc-500">
-                  CSV filename column matches uploaded file exactly
-                </td>
-                <td className="px-3 py-2 text-green-600">Highest</td>
-              </tr>
-              <tr>
-                <td className="px-3 py-2">Normalised filename</td>
-                <td className="px-3 py-2 text-zinc-500">
-                  Ignores case, spaces, underscores, hyphens, extensions
-                </td>
-                <td className="px-3 py-2 text-green-600">High</td>
-              </tr>
-              <tr>
-                <td className="px-3 py-2">ID match</td>
-                <td className="px-3 py-2 text-zinc-500">
-                  Creative / ad / asset ID from CSV appears in filename
-                </td>
-                <td className="px-3 py-2 text-green-600">High</td>
-              </tr>
-              <tr>
-                <td className="px-3 py-2">Ad name match</td>
-                <td className="px-3 py-2 text-zinc-500">
-                  Ad name or slug appears in filename
-                </td>
-                <td className="px-3 py-2 text-yellow-600">Medium</td>
-              </tr>
-              <tr>
-                <td className="px-3 py-2">Fuzzy match</td>
-                <td className="px-3 py-2 text-zinc-500">
-                  Approximate string match — suggested only, you must confirm
-                </td>
-                <td className="px-3 py-2 text-orange-600">Low until confirmed</td>
-              </tr>
-              <tr>
-                <td className="px-3 py-2">Manual mapping</td>
-                <td className="px-3 py-2 text-zinc-500">
-                  You manually connect a creative to a performance row
-                </td>
-                <td className="px-3 py-2 text-zinc-500">User confirmed</td>
-              </tr>
-            </tbody>
-          </table>
+      <div className="panel">
+        <h3 className="panel-title">1 · What you need</h3>
+        <p className="panel-sub">Two things, gathered before you start.</p>
+        <div className="grid-2">
+          <div className="diagram">
+            <p className="mono" style={{ fontSize: 11, color: "var(--text-3)", margin: 0 }}>
+              FILES · IMAGE
+            </p>
+            <p style={{ fontSize: 14, fontWeight: 600, margin: "4px 0 6px" }}>
+              Your ad creative files
+            </p>
+            <p className="mono" style={{ fontSize: 12, color: "var(--text-2)", margin: 0 }}>
+              .png .jpg .jpeg — one file per creative variant. Static images
+              only in this version.
+            </p>
+          </div>
+          <div className="diagram">
+            <p className="mono" style={{ fontSize: 11, color: "var(--text-3)", margin: 0 }}>
+              FILE · TABULAR
+            </p>
+            <p style={{ fontSize: 14, fontWeight: 600, margin: "4px 0 6px" }}>
+              A performance export CSV
+            </p>
+            <p className="mono" style={{ fontSize: 12, color: "var(--text-2)", margin: 0 }}>
+              .csv — exported from Meta Ads Manager, Google Ads, or any generic
+              source. One row per creative.
+            </p>
+          </div>
         </div>
-      </section>
+      </div>
 
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Recommended file naming</h2>
-        <code className="block bg-zinc-100 dark:bg-zinc-900 rounded px-3 py-2 text-sm">
-          platform_campaign_adset_adname_creativeid_variant.ext
-        </code>
-        <div className="text-sm text-zinc-500 dark:text-zinc-400 space-y-1">
-          <p>
-            <strong>Meta example:</strong>{" "}
-            meta_ramadan2026_broadaudience_offer1_238472384_staticA.png
-          </p>
-          <p>
-            <strong>Google example:</strong>{" "}
-            google_pmax_springlaunch_asset983742_squareimage_v1.png
-          </p>
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Required CSV columns</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border border-zinc-200 dark:border-zinc-800">
-            <thead className="bg-zinc-50 dark:bg-zinc-900">
-              <tr>
-                <th className="text-left px-3 py-2 font-medium">Type</th>
-                <th className="text-left px-3 py-2 font-medium">Fields</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-              <tr>
-                <td className="px-3 py-2 font-medium">Identifier (at least one)</td>
-                <td className="px-3 py-2 text-zinc-500">
-                  filename, creative_id, ad_id, asset_id, ad_name, creative_name
-                </td>
-              </tr>
-              <tr>
-                <td className="px-3 py-2 font-medium">Basic metrics</td>
-                <td className="px-3 py-2 text-zinc-500">
-                  impressions, clicks, spend
-                </td>
-              </tr>
-              <tr>
-                <td className="px-3 py-2 font-medium">Recommended</td>
-                <td className="px-3 py-2 text-zinc-500">
-                  conversions, revenue, date_start, date_end, campaign_name,
-                  adset_name, platform, placement
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-lg font-semibold">Why dataset size matters</h2>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">
-          More creatives mean more reliable patterns. The dashboard shows a
-          Dataset Trust Score based on how much data you have:
+      <div className="panel">
+        <h3 className="panel-title">
+          2 · How creatives connect to performance rows
+        </h3>
+        <p className="panel-sub">
+          We try these matching methods in order, highest confidence first.
+          Anything below &quot;fuzzy&quot; requires you to confirm before it
+          counts.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-5 gap-2 text-sm">
-          {[
-            { n: "<10", label: "Not enough data", color: "bg-red-100 text-red-700 dark:bg-red-950 dark:text-red-400" },
-            { n: "10–29", label: "Directional only", color: "bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-400" },
-            { n: "30–99", label: "Early patterns", color: "bg-yellow-100 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-400" },
-            { n: "100–299", label: "Moderate confidence", color: "bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400" },
-            { n: "300+", label: "Stronger confidence", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400" },
-          ].map((level) => (
-            <div key={level.n} className={`rounded-md px-3 py-2 text-center ${level.color}`}>
-              <div className="font-semibold">{level.n}</div>
-              <div className="text-xs">{level.label}</div>
-            </div>
-          ))}
+        <div className="tbl-wrap">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th style={{ width: "30%" }}>Method</th>
+                <th style={{ width: "45%" }}>What it does</th>
+                <th>Confidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="mono">exact filename</td>
+                <td>
+                  Filename column in CSV matches uploaded filename
+                  byte-for-byte.
+                </td>
+                <td>
+                  <span className="badge badge-green">highest</span>
+                </td>
+              </tr>
+              <tr>
+                <td className="mono">normalised filename</td>
+                <td>
+                  Match ignoring case, spaces, dashes, underscores, and
+                  extension.
+                </td>
+                <td>
+                  <span className="badge badge-green">high</span>
+                </td>
+              </tr>
+              <tr>
+                <td className="mono">creative_id / ad_id / asset_id</td>
+                <td>
+                  ID found anywhere in the filename matches an ID column.
+                </td>
+                <td>
+                  <span className="badge badge-green">high</span>
+                </td>
+              </tr>
+              <tr>
+                <td className="mono">ad_name</td>
+                <td>Filename contains or equals ad_name field.</td>
+                <td>
+                  <span className="badge badge-amber">medium</span>
+                </td>
+              </tr>
+              <tr>
+                <td className="mono">fuzzy</td>
+                <td>
+                  Best-effort string similarity (Levenshtein ≥ 0.78). Suggested
+                  only — must be confirmed.
+                </td>
+                <td>
+                  <span className="badge badge-amber">suggested</span>
+                </td>
+              </tr>
+              <tr>
+                <td className="mono">manual</td>
+                <td>
+                  You connect the creative to a row by hand in the mapping step.
+                </td>
+                <td>
+                  <span className="badge">manual</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      </section>
+      </div>
 
-      <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
-        <Link
-          href="/upload"
-          className="rounded-md bg-zinc-900 px-5 py-2 text-sm font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-        >
-          I understand, continue to upload
+      <div className="panel">
+        <h3 className="panel-title">3 · Recommended file naming</h3>
+        <p className="panel-sub">
+          Follow this pattern when exporting from your DAM or ad platform. Most
+          matching problems disappear.
+        </p>
+        <div className="diagram" style={{ marginBottom: 12 }}>
+          <p className="mono" style={{ fontSize: 11, color: "var(--text-3)", margin: 0 }}>
+            PATTERN
+          </p>
+          <p className="mono" style={{ fontSize: 14, color: "var(--text)", margin: "6px 0 0" }}>
+            {"{platform}_{campaign}_{adset}_{adname}_{creativeid}_{variant}.ext"}
+          </p>
+        </div>
+        <div className="grid-2">
+          <div>
+            <p className="mono" style={{ fontSize: 11, color: "var(--text-3)", margin: "0 0 4px" }}>
+              EXAMPLE 1 — META
+            </p>
+            <p className="mono" style={{ fontSize: 12, margin: 0, wordBreak: "break-all" as const }}>
+              meta_ramadan2026_broadaudience_offer1_238472384_staticA.png
+            </p>
+          </div>
+          <div>
+            <p className="mono" style={{ fontSize: 11, color: "var(--text-3)", margin: "0 0 4px" }}>
+              EXAMPLE 2 — GOOGLE
+            </p>
+            <p className="mono" style={{ fontSize: 12, margin: 0, wordBreak: "break-all" as const }}>
+              google_pmax_springlaunch_asset983742_squareimage_v1.png
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="panel">
+        <h3 className="panel-title">4 · Required CSV columns</h3>
+        <p className="panel-sub">
+          Identifier columns let us link. Metric columns are what we analyse.
+        </p>
+        <div className="tbl-wrap">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th style={{ width: 110 }}>Tier</th>
+                <th>Columns</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>
+                  <span className="badge badge-red">required</span>
+                </td>
+                <td>
+                  <p style={{ margin: 0 }}>
+                    <strong>At least one identifier:</strong>{" "}
+                    <span className="mono">
+                      filename · creative_id · ad_id · asset_id · ad_name ·
+                      creative_name
+                    </span>
+                  </p>
+                  <p style={{ margin: "8px 0 0" }}>
+                    <strong>Plus all three metrics:</strong>{" "}
+                    <span className="mono">impressions · clicks · spend</span>
+                  </p>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <span className="badge badge-green">recommended</span>
+                </td>
+                <td
+                  className="mono"
+                  style={{ fontSize: 12 }}
+                >
+                  conversions · revenue · date_start · date_end · campaign_name
+                  · adset_name · platform · placement
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="panel">
+        <h3 className="panel-title">5 · Why dataset size matters</h3>
+        <p className="panel-sub">
+          More creatives → more reliable patterns. Below 30 creatives, treat
+          anything you see as a hypothesis, not a finding.
+        </p>
+        <div className="tbl-wrap">
+          <table className="tbl">
+            <thead>
+              <tr>
+                <th style={{ width: 140 }}>Creative count</th>
+                <th style={{ width: 200 }}>Trust level</th>
+                <th>What it means</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="mono">&lt; 10</td>
+                <td>
+                  <span className="dot dot-red" />{" "}
+                  <span style={{ marginLeft: 6 }}>L0 — Not enough data</span>
+                </td>
+                <td>
+                  Analysis runs, but no statistical claims should be made.
+                </td>
+              </tr>
+              <tr>
+                <td className="mono">10 – 29</td>
+                <td>
+                  <span className="dot dot-amber" />{" "}
+                  <span style={{ marginLeft: 6 }}>L1 — Directional only</span>
+                </td>
+                <td>
+                  Patterns are suggestive. Use as inspiration, not evidence.
+                </td>
+              </tr>
+              <tr>
+                <td className="mono">30 – 99</td>
+                <td>
+                  <span className="dot dot-amber" />{" "}
+                  <span style={{ marginLeft: 6 }}>
+                    L2 — Early pattern detection
+                  </span>
+                </td>
+                <td>
+                  Top variables become meaningful. Small subgroups still
+                  unreliable.
+                </td>
+              </tr>
+              <tr>
+                <td className="mono">100 – 299</td>
+                <td>
+                  <span className="dot dot-green" />{" "}
+                  <span style={{ marginLeft: 6 }}>
+                    L3 — Moderate confidence
+                  </span>
+                </td>
+                <td>Most rankings stable. Run hold-outs to confirm.</td>
+              </tr>
+              <tr>
+                <td className="mono">300 +</td>
+                <td>
+                  <span className="dot dot-green" />{" "}
+                  <span style={{ marginLeft: 6 }}>
+                    L4 — Stronger confidence
+                  </span>
+                </td>
+                <td>Patterns are robust. Use for production decisions.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div className="page-actions">
+        <Link href="/setup" className="btn">
+          ← Back to setup
+        </Link>
+        <div className="spacer" />
+        <Link href="/upload" className="btn btn-primary">
+          I understand, continue to upload →
         </Link>
       </div>
     </div>

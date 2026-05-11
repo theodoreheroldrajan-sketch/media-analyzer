@@ -1,80 +1,109 @@
+import Link from "next/link";
+
 export default function SettingsPage() {
   return (
-    <div className="max-w-2xl mx-auto px-6 py-12">
-      <h1 className="text-2xl font-bold mb-2">Settings</h1>
-      <p className="text-zinc-500 dark:text-zinc-400 mb-8">
-        Manage project configuration, exports and data.
-      </p>
-
-      <div className="space-y-6">
-        <section className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-semibold mb-3">Brand context</h2>
-          <p className="text-sm text-zinc-400">
-            Edit your project&apos;s brand context, audience, goal and KPI
-            settings.
-          </p>
-          <button
-            disabled
-            className="mt-3 rounded-md border border-zinc-300 px-4 py-1.5 text-sm opacity-50 cursor-not-allowed dark:border-zinc-700"
-          >
-            Edit context
-          </button>
-        </section>
-
-        <section className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-semibold mb-3">Export data</h2>
-          <div className="flex gap-3">
-            {["Variables CSV", "Performance CSV", "Combined CSV"].map(
-              (label) => (
-                <button
-                  key={label}
-                  disabled
-                  className="rounded-md border border-zinc-300 px-4 py-1.5 text-sm opacity-50 cursor-not-allowed dark:border-zinc-700"
-                >
-                  {label}
-                </button>
-              )
-            )}
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-semibold mb-3">API usage</h2>
-          <div className="grid grid-cols-3 gap-4 text-center text-sm">
-            <div>
-              <div className="text-xl font-bold">—</div>
-              <div className="text-xs text-zinc-500">Total tokens</div>
-            </div>
-            <div>
-              <div className="text-xl font-bold">—</div>
-              <div className="text-xs text-zinc-500">Total cost</div>
-            </div>
-            <div>
-              <div className="text-xl font-bold">—</div>
-              <div className="text-xs text-zinc-500">Analysis runs</div>
-            </div>
-          </div>
-        </section>
-
-        <section className="rounded-lg border border-red-200 bg-red-50 p-6 dark:border-red-900 dark:bg-red-950/30">
-          <h2 className="text-sm font-semibold text-red-700 dark:text-red-400 mb-3">
-            Danger zone
-          </h2>
-          <p className="text-sm text-red-600 dark:text-red-400 mb-3">
-            Permanently delete this project and all associated data.
-          </p>
-          <button
-            disabled
-            className="rounded-md border border-red-300 px-4 py-1.5 text-sm text-red-700 opacity-50 cursor-not-allowed dark:border-red-800 dark:text-red-400"
-          >
-            Delete project
-          </button>
-        </section>
+    <div className="page">
+      <div className="page-head">
+        <p className="page-eyebrow">Step 09 of 09</p>
+        <h1 className="page-title">Project settings</h1>
+        <p className="page-sub">
+          Manage brand context, export data, see API usage, or delete this
+          project.
+        </p>
       </div>
 
-      <p className="mt-6 text-xs text-zinc-400">
-        Settings will be functional after Supabase integration.
-      </p>
+      <div className="panel">
+        <h3 className="panel-title">Export data</h3>
+        <p className="panel-sub">
+          Download CSVs of the underlying data behind the dashboard. Re-import
+          to other tools as needed.
+        </p>
+        <div className="btn-row mt-2" style={{ flexWrap: "wrap" }}>
+          <button className="btn" disabled>
+            ↓ Variables CSV{" "}
+            <span className="muted mono" style={{ marginLeft: 6, fontSize: 11 }}>
+              — rows · — cols
+            </span>
+          </button>
+          <button className="btn" disabled>
+            ↓ Performance CSV{" "}
+            <span className="muted mono" style={{ marginLeft: 6, fontSize: 11 }}>
+              — rows · — cols
+            </span>
+          </button>
+          <button className="btn" disabled>
+            ↓ Combined analysis CSV{" "}
+            <span className="muted mono" style={{ marginLeft: 6, fontSize: 11 }}>
+              — rows · — cols
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div className="panel">
+        <h3 className="panel-title">API usage</h3>
+        <p className="panel-sub">Lifetime usage for this project.</p>
+        <div className="kv-grid mt-2">
+          <div className="kv-row">
+            <div className="k">total_analysis_runs</div>
+            <div className="v">0</div>
+          </div>
+          <div className="kv-row">
+            <div className="k">total_tokens_used</div>
+            <div className="v">0</div>
+          </div>
+          <div className="kv-row">
+            <div className="k">total_cost_usd</div>
+            <div className="v">$0.00</div>
+          </div>
+          <div className="kv-row">
+            <div className="k">last_run</div>
+            <div className="v mono" style={{ fontSize: 12 }}>
+              —
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div
+        className="panel"
+        style={{ borderColor: "oklch(0.85 0.06 25)" }}
+      >
+        <h3 className="panel-title" style={{ color: "var(--red)" }}>
+          Danger zone
+        </h3>
+        <p className="panel-sub">Destructive actions. Cannot be undone.</p>
+        <div
+          className="between"
+          style={{
+            padding: "12px 0 0",
+            borderTop: "1px solid var(--border)",
+            marginTop: 8,
+          }}
+        >
+          <div>
+            <p style={{ margin: 0, fontSize: 14, fontWeight: 600 }}>
+              Delete this project
+            </p>
+            <p
+              className="muted"
+              style={{ margin: "2px 0 0", fontSize: 12 }}
+            >
+              Removes all creatives, mappings, extracted variables, and
+              dashboard data.
+            </p>
+          </div>
+          <button className="btn btn-danger" disabled>
+            Delete project
+          </button>
+        </div>
+      </div>
+
+      <div className="page-actions">
+        <Link href="/dashboard" className="btn">
+          ← Back to dashboard
+        </Link>
+      </div>
     </div>
   );
 }

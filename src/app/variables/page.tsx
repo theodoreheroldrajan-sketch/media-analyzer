@@ -1,66 +1,127 @@
+import Link from "next/link";
+
+const UNIVERSAL_VARS: [string, string][] = [
+  ["creative_format", "enum"],
+  ["aspect_ratio", "enum"],
+  ["primary_visual_subject", "string"],
+  ["product_visible", "boolean"],
+  ["human_present", "boolean"],
+  ["face_visible", "boolean"],
+  ["number_of_people", "integer"],
+  ["colour_palette", "enum"],
+  ["contrast", "enum"],
+  ["text_overlay", "boolean"],
+  ["text_density", "enum"],
+  ["logo_visible", "boolean"],
+  ["brand_colours_used", "boolean"],
+  ["visual_clutter", "enum"],
+  ["headline_present", "boolean"],
+  ["cta_present", "boolean"],
+  ["cta_text", "string"],
+  ["offer_present", "boolean"],
+  ["price_shown", "boolean"],
+  ["urgency_cue", "boolean"],
+  ["social_proof", "boolean"],
+  ["message_angle", "enum"],
+  ["primary_hook", "string"],
+  ["funnel_stage", "enum"],
+];
+
 export default function VariablesPage() {
   return (
-    <div className="max-w-3xl mx-auto px-6 py-12">
-      <h1 className="text-2xl font-bold mb-2">Variable Schema Builder</h1>
-      <p className="text-zinc-500 dark:text-zinc-400 mb-8">
-        Choose which creative variables the AI should extract from your ad
-        images.
-      </p>
-
-      <div className="space-y-6">
-        <section className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-semibold mb-3">Universal variables</h2>
-          <p className="text-sm text-zinc-400">
-            Standard creative variables that apply across most ad types (format,
-            placement, color, CTA, people, etc.).
-          </p>
-          <p className="mt-2 text-xs text-zinc-400">
-            Variable checklist will be implemented in Phase 6.
-          </p>
-        </section>
-
-        <section className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-semibold mb-3">Category variables</h2>
-          <p className="text-sm text-zinc-400">
-            Variables specific to your brand category (e.g. food texture cues
-            for restaurants, app UI visibility for app install).
-          </p>
-        </section>
-
-        <section className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-semibold mb-3">AI-suggested variables</h2>
-          <p className="text-sm text-zinc-400">
-            Ask Claude to suggest additional variables based on your brand
-            context and sample creatives.
-          </p>
-          <button
-            disabled
-            className="mt-3 rounded-md border border-zinc-300 px-4 py-1.5 text-sm opacity-50 cursor-not-allowed dark:border-zinc-700"
-          >
-            Suggest variables
-          </button>
-        </section>
-
-        <section className="rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-          <h2 className="text-sm font-semibold mb-3">Custom variables</h2>
-          <p className="text-sm text-zinc-400">
-            Add your own custom variables to the extraction schema.
-          </p>
-          <button
-            disabled
-            className="mt-3 rounded-md border border-zinc-300 px-4 py-1.5 text-sm opacity-50 cursor-not-allowed dark:border-zinc-700"
-          >
-            Add custom variable
-          </button>
-        </section>
+    <div className="page">
+      <div className="page-head">
+        <p className="page-eyebrow">Step 06 of 09</p>
+        <h1 className="page-title">Approve the variable schema</h1>
+        <p className="page-sub">
+          These are the variables the AI will extract from each creative. Keep
+          the schema tight — every variable you add is more cost and a smaller
+          per-bucket sample size.
+        </p>
       </div>
 
-      <div className="mt-8">
-        <button
-          disabled
-          className="rounded-md bg-zinc-900 px-5 py-2 text-sm font-medium text-white opacity-50 cursor-not-allowed dark:bg-zinc-100 dark:text-zinc-900"
-        >
-          Approve schema &amp; continue to analysis
+      <div className="panel">
+        <div className="between">
+          <div>
+            <h3 className="panel-title">1 · Universal variables</h3>
+            <p className="panel-sub" style={{ marginBottom: 0 }}>
+              Applied to every project. All on by default — uncheck any you
+              don&apos;t need.
+            </p>
+          </div>
+          <span className="badge mono">
+            {UNIVERSAL_VARS.length} / {UNIVERSAL_VARS.length} included
+          </span>
+        </div>
+        <div style={{ marginTop: 14, columnCount: 2, columnGap: 28 }}>
+          {UNIVERSAL_VARS.map(([name, type]) => (
+            <label
+              className="checkbox-row"
+              key={name}
+              style={{ breakInside: "avoid" as const }}
+            >
+              <input type="checkbox" defaultChecked readOnly />
+              <span className="cb-name">{name}</span>
+              <span className="cb-type">{type}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="between">
+          <div>
+            <h3 className="panel-title">2 · Category variables</h3>
+            <p className="panel-sub" style={{ marginBottom: 0 }}>
+              Loaded from the brand category template you picked in setup.
+            </p>
+          </div>
+          <span className="badge mono">— / — included</span>
+        </div>
+        <p className="muted mt-2" style={{ fontSize: 13 }}>
+          Complete setup first to load category-specific variables.
+        </p>
+      </div>
+
+      <div className="panel">
+        <div className="between">
+          <div>
+            <h3 className="panel-title">3 · AI-suggested variables</h3>
+            <p className="panel-sub" style={{ marginBottom: 0 }}>
+              Generated from your brand context and a sample of uploaded
+              creatives. None are auto-added.
+            </p>
+          </div>
+          <button className="btn" disabled>
+            Ask AI to suggest variables
+          </button>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="between">
+          <div>
+            <h3 className="panel-title">4 · Custom variables</h3>
+            <p className="panel-sub" style={{ marginBottom: 0 }}>
+              Add anything specific to your hypothesis.
+            </p>
+          </div>
+          <button className="btn" disabled>
+            + Add custom variable
+          </button>
+        </div>
+      </div>
+
+      <div className="page-actions">
+        <Link href="/mapping" className="btn">
+          ← Back
+        </Link>
+        <div className="spacer" />
+        <p className="mono" style={{ fontSize: 12, marginRight: 14 }}>
+          <strong>{UNIVERSAL_VARS.length}</strong> variables in final schema
+        </p>
+        <button className="btn btn-primary" disabled>
+          Approve schema &amp; continue →
         </button>
       </div>
     </div>
