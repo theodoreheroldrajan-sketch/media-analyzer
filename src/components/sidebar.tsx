@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useProject } from "@/context/project-context";
 
 const steps = [
   { href: "/", label: "Home", path: "/" },
@@ -17,14 +18,17 @@ const steps = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const { project } = useProject();
   const currentIndex = steps.findIndex((s) => s.href === pathname);
 
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
         <p className="sidebar-brand">Creative Media Analyser</p>
-        <p className="sidebar-project">Untitled project</p>
-        <p className="sidebar-project-meta">No brand set</p>
+        <p className="sidebar-project">{project?.name ?? "Untitled project"}</p>
+        <p className="sidebar-project-meta">
+          {project ? project.brand_name : "No brand set"}
+        </p>
       </div>
       <ul className="stepper">
         {steps.map((step, i) => {
