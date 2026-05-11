@@ -1,48 +1,65 @@
+import Link from "next/link";
+
 export default function UploadPage() {
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12">
-      <h1 className="text-2xl font-bold mb-2">Upload</h1>
-      <p className="text-zinc-500 dark:text-zinc-400 mb-8">
-        Upload your ad creative files and performance CSV.
-      </p>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-8 text-center dark:border-zinc-700 dark:bg-zinc-950">
-          <div className="text-zinc-400 mb-2 text-3xl">📁</div>
-          <p className="text-sm font-medium mb-1">Creative assets</p>
-          <p className="text-xs text-zinc-400">
-            Drag &amp; drop PNG, JPG or JPEG files here
-          </p>
-          <p className="text-xs text-zinc-400 mt-4">0 files uploaded</p>
-        </div>
-
-        <div className="rounded-lg border border-dashed border-zinc-300 bg-zinc-50 p-8 text-center dark:border-zinc-700 dark:bg-zinc-950">
-          <div className="text-zinc-400 mb-2 text-3xl">📊</div>
-          <p className="text-sm font-medium mb-1">Performance CSV</p>
-          <p className="text-xs text-zinc-400">
-            Drag &amp; drop your CSV export here
-          </p>
-          <p className="text-xs text-zinc-400 mt-4">No file uploaded</p>
-        </div>
-      </div>
-
-      <div className="mt-8 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-        <h2 className="text-sm font-semibold mb-3">Validation report</h2>
-        <p className="text-sm text-zinc-400">
-          Upload a CSV to see the validation report here.
+    <div className="page">
+      <div className="page-head">
+        <p className="page-eyebrow">Step 04 of 09</p>
+        <h1 className="page-title">
+          Upload your creatives and performance data
+        </h1>
+        <p className="page-sub">
+          Drop image files on the left, drop one CSV on the right. We&apos;ll
+          validate both before allowing you to continue.
         </p>
       </div>
 
-      <div className="mt-6">
-        <button
-          disabled
-          className="rounded-md bg-zinc-900 px-5 py-2 text-sm font-medium text-white opacity-50 cursor-not-allowed dark:bg-zinc-100 dark:text-zinc-900"
-        >
-          Continue to mapping
+      <div className="grid-2">
+        <div className="panel">
+          <div className="between" style={{ marginBottom: 12 }}>
+            <div>
+              <h3 className="panel-title">Creative assets</h3>
+              <p className="panel-sub" style={{ marginBottom: 0 }}>
+                PNG, JPG, JPEG. Drop a folder or pick files.
+              </p>
+            </div>
+            <span className="badge mono">0 uploaded</span>
+          </div>
+          <div className="dropzone">
+            <p className="dropzone-title">Drop images here or click to select</p>
+            <p className="dropzone-sub">
+              .png .jpg .jpeg — up to 500 files, 10 MB each
+            </p>
+          </div>
+        </div>
+
+        <div className="panel">
+          <div className="between" style={{ marginBottom: 12 }}>
+            <div>
+              <h3 className="panel-title">Performance data</h3>
+              <p className="panel-sub" style={{ marginBottom: 0 }}>
+                One CSV file with the columns you reviewed.
+              </p>
+            </div>
+          </div>
+          <div className="dropzone">
+            <p className="dropzone-title">Drop CSV here or click to select</p>
+            <p className="dropzone-sub">.csv — single file, UTF-8 encoded</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="page-actions">
+        <Link href="/instructions" className="btn">
+          ← Back
+        </Link>
+        <div className="spacer" />
+        <p className="muted" style={{ fontSize: 12, margin: 0, marginRight: 12 }}>
+          Upload both files to continue.
+        </p>
+        <button className="btn btn-primary" disabled>
+          Continue to mapping →
         </button>
-        <p className="mt-2 text-xs text-zinc-400">
-          Upload functionality will be implemented in Phase 4.
-        </p>
       </div>
     </div>
   );

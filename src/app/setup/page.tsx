@@ -1,128 +1,145 @@
+import Link from "next/link";
+
+const CATEGORIES = [
+  "Generic ecommerce",
+  "Food/restaurant",
+  "App install",
+  "Matrimony/dating",
+  "Local service",
+  "B2B lead generation",
+  "Personal brand/content creator",
+];
+const KPIS = ["CTR", "CPC", "CPA", "CVR", "ROAS"];
+const PLATFORMS = ["Meta Ads", "Google Ads", "Generic/Other"];
+
 export default function SetupPage() {
   return (
-    <div className="max-w-2xl mx-auto px-6 py-12">
-      <h1 className="text-2xl font-bold mb-2">Project Setup</h1>
-      <p className="text-zinc-500 dark:text-zinc-400 mb-8">
-        Create a new project and provide brand context for your creative
-        analysis.
-      </p>
+    <div className="page">
+      <div className="page-head">
+        <p className="page-eyebrow">Step 02 of 09</p>
+        <h1 className="page-title">Set up your project</h1>
+        <p className="page-sub">
+          Tell us about the brand and what you&apos;re optimising for. This
+          context shapes the variable schema and the way insights are framed.
+        </p>
+      </div>
 
-      <div className="space-y-6 rounded-lg border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-950">
-        <fieldset className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Project name
-            </label>
-            <input
-              type="text"
-              disabled
-              placeholder="e.g. Q2 Meta Campaign"
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Brand name</label>
-            <input
-              type="text"
-              disabled
-              placeholder="e.g. Betterhalf"
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Brand category
-            </label>
-            <select
-              disabled
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            >
-              <option>Select category...</option>
-              <option>Generic ecommerce</option>
-              <option>Food / restaurant</option>
-              <option>App install</option>
-              <option>Matrimony / dating</option>
-              <option>Local service</option>
-              <option>B2B lead generation</option>
-              <option>Personal brand / content creator</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Campaign goal
-            </label>
-            <input
-              type="text"
-              disabled
-              placeholder="e.g. App installs"
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Target audience
-            </label>
-            <textarea
-              disabled
-              rows={2}
-              placeholder="e.g. Urban Indian singles, 25-34"
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Primary KPI
-            </label>
-            <select
-              disabled
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            >
-              <option>Select KPI...</option>
-              <option>CTR</option>
-              <option>CPC</option>
-              <option>CPA</option>
-              <option>CVR</option>
-              <option>ROAS</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Tone / positioning
-            </label>
-            <input
-              type="text"
-              disabled
-              placeholder="e.g. Playful, warm"
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Platform / source
-            </label>
-            <select
-              disabled
-              className="w-full rounded-md border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900"
-            >
-              <option>Select platform...</option>
-              <option>Meta Ads</option>
-              <option>Google Ads</option>
-              <option>Generic / Other</option>
-            </select>
-          </div>
-        </fieldset>
+      <div className="panel" style={{ maxWidth: 820 }}>
+        <h3 className="panel-title">Brand context</h3>
+        <p className="panel-sub">
+          All fields except where marked optional are required for analysis to
+          produce useful results.
+        </p>
 
-        <div className="pt-4 border-t border-zinc-200 dark:border-zinc-800">
-          <button
-            disabled
-            className="rounded-md bg-zinc-900 px-5 py-2 text-sm font-medium text-white opacity-50 cursor-not-allowed dark:bg-zinc-100 dark:text-zinc-900"
-          >
-            Save &amp; continue
-          </button>
-          <p className="mt-2 text-xs text-zinc-400">
-            Form will be functional after Supabase integration (Phase 2–3).
-          </p>
+        <div className="field-row">
+          <div className="field">
+            <label className="label">
+              Project name<span className="req">*</span>
+            </label>
+            <input
+              className="input"
+              placeholder="Spring launch — Meta video"
+            />
+          </div>
+          <div className="field">
+            <label className="label">
+              Brand name<span className="req">*</span>
+            </label>
+            <input className="input" placeholder="Acme" />
+          </div>
         </div>
+
+        <div className="field-row">
+          <div className="field">
+            <label className="label">
+              Brand category<span className="req">*</span>
+            </label>
+            <select className="select" defaultValue="">
+              <option value="" disabled>
+                Select category…
+              </option>
+              {CATEGORIES.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <p className="hint">
+              Used to load category-specific variables in the next step.
+            </p>
+          </div>
+          <div className="field">
+            <label className="label">
+              Platform / source<span className="req">*</span>
+            </label>
+            <select className="select" defaultValue="">
+              <option value="" disabled>
+                Select platform…
+              </option>
+              {PLATFORMS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <p className="hint">
+              Determines expected CSV columns and naming conventions.
+            </p>
+          </div>
+        </div>
+
+        <div className="field">
+          <label className="label">Campaign goal</label>
+          <input
+            className="input"
+            placeholder="App installs, lead generation, online sales…"
+          />
+        </div>
+
+        <div className="field">
+          <label className="label">Target audience</label>
+          <textarea
+            className="textarea"
+            placeholder="Urban Indian singles, 25-34, English-speaking, salaried professionals in metros…"
+          />
+        </div>
+
+        <div className="field-row">
+          <div className="field">
+            <label className="label">
+              Primary KPI<span className="req">*</span>
+            </label>
+            <select className="select" defaultValue="">
+              <option value="" disabled>
+                Select KPI…
+              </option>
+              {KPIS.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="field">
+            <label className="label">
+              Tone / positioning <span className="muted">(optional)</span>
+            </label>
+            <input
+              className="input"
+              placeholder="Bold, irreverent, value-conscious…"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="page-actions">
+        <Link href="/" className="btn">
+          ← Back
+        </Link>
+        <div className="spacer" />
+        <Link href="/instructions" className="btn btn-primary">
+          Save &amp; continue →
+        </Link>
       </div>
     </div>
   );
