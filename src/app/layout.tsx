@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { ProjectProvider } from "@/context/project-context";
 import Sidebar from "@/components/sidebar";
 import TopBar from "@/components/topbar";
 
@@ -17,13 +18,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <div className="app">
-          <Sidebar />
-          <div className="main">
-            <TopBar />
-            {children}
+        <ProjectProvider>
+          <div className="app">
+            <Sidebar />
+            <div className="main">
+              <TopBar />
+              {children}
+            </div>
           </div>
-        </div>
+        </ProjectProvider>
       </body>
     </html>
   );
