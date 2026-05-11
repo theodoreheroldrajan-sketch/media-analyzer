@@ -8,7 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import type { Project } from "@/types/database";
 
 type ProjectContextValue = {
@@ -46,7 +46,7 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   // Fetch project when ID changes
   const fetchProject = useCallback(async (id: string) => {
     setLoading(true);
-    const { data, error } = await supabase
+    const { data, error } = await getSupabase()
       .from("projects")
       .select("*")
       .eq("id", id)

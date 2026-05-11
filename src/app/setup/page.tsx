@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
+import { getSupabase } from "@/lib/supabase";
 import { useProject } from "@/context/project-context";
 
 
@@ -72,7 +72,7 @@ export default function SetupPage() {
     try {
       if (project) {
         // Update existing project
-        const { error: updateError } = await supabase
+        const { error: updateError } = await getSupabase()
           .from("projects")
           .update(payload)
           .eq("id", project.id);
@@ -81,7 +81,7 @@ export default function SetupPage() {
         await refresh();
       } else {
         // Create new project
-        const { data, error: insertError } = await supabase
+        const { data, error: insertError } = await getSupabase()
           .from("projects")
           .insert(payload)
           .select()
