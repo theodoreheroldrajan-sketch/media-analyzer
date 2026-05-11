@@ -1,10 +1,15 @@
+"use client";
+
 import Link from "next/link";
+import { useProject } from "@/context/project-context";
 
 export default function HomePage() {
+  const { project, loading } = useProject();
+
   return (
     <div className="page">
       <div className="hero">
-        <p className="hero-eyebrow">v0.4 · functional preview</p>
+        <p className="hero-eyebrow">v1.0 · live</p>
         <h1>Find out which creative patterns actually drive performance.</h1>
         <p>
           Upload your ad creatives and a performance CSV. The analyser extracts
@@ -41,13 +46,41 @@ export default function HomePage() {
         </div>
 
         <div className="hero-cta">
-          <Link href="/setup" className="btn btn-primary">
-            Start new project →
-          </Link>
-          <Link href="/dashboard" className="btn">
-            Try demo
-          </Link>
+          {!loading && project ? (
+            <>
+              <Link href="/dashboard" className="btn btn-primary">
+                Continue to dashboard →
+              </Link>
+              <Link href="/setup" className="btn">
+                Edit project
+              </Link>
+            </>
+          ) : (
+            <Link href="/setup" className="btn btn-primary">
+              Start new project →
+            </Link>
+          )}
         </div>
+
+        {!loading && project && (
+          <div
+            style={{
+              marginTop: 20,
+              padding: "12px 16px",
+              border: "1px solid var(--border)",
+              borderRadius: 8,
+              background: "var(--bg-2)",
+              fontSize: 13,
+            }}
+          >
+            <p style={{ margin: "0 0 4px", fontWeight: 600 }}>
+              Active project: {project.name}
+            </p>
+            <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+              {project.brand_name} · {project.brand_category} · {project.platform}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
