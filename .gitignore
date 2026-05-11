@@ -40,6 +40,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# claude design exports
+/claude-design
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
