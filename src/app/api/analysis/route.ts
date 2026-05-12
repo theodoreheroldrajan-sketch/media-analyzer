@@ -3,8 +3,8 @@ import { createClient } from "@supabase/supabase-js";
 import Anthropic from "@anthropic-ai/sdk";
 import type { Database, VariableDefinition } from "@/types/database";
 
-// Use edge runtime for 30s timeout (streaming bypasses this, but belt-and-suspenders)
-export const runtime = "edge";
+// Streaming response bypasses Vercel's 10s timeout — no edge runtime needed.
+// (Edge runtime can't use the Anthropic SDK due to node:fs/node:path deps.)
 
 function getServerSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
