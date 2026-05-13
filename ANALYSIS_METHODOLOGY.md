@@ -1,0 +1,315 @@
+# Creative Media Analyser — Analysis Methodology
+
+## Document purpose
+
+This document explains the statistical and analytical methodology behind the Creative Media Analyser. It is intended for a consultant with a background in regression modelling, data analysis, or econometrics, to review, critique, and improve the approach.
+
+---
+
+## 1. What the tool does
+
+The Creative Media Analyser takes two inputs:
+
+1. **Creative images** — the actual ad creative files (PNG/JPG) used in paid campaigns
+2. **Performance data** — a CSV export from an ad platform (Meta Ads, Google Ads, etc.) containing metrics like impressions, clicks, spend, conversions, and revenue per creative
+
+The tool then:
+
+- **Matches** each creative image to its performance row using filename/ID matching
+- **Extracts structured variables** from each image using AI vision (Claude Haiku 4.5) — for example: "Is a human present? Yes. Is there a CTA? Yes. What is the colour palette? Warm. What is the message angle? Benefit."
+- **Analyses** how each variable value correlates with a chosen performance metric (CTR, CPC, CPA, CVR, or ROAS)
+
+The end goal: tell a performance marketer which creative patterns (e.g. "warm colours", "human face visible", "urgency cue present") are associated with better ad performance, so they can make informed creative decisions.
+
+---
+
+## 2. Variables extracted
+
+For each creative image, the AI extracts 24 universal variables plus 4–6 category-specific variables (depending on industry). Variable types are:
+
+| Type | Example variables | Cardinality |
+|------|-------------------|-------------|
+| **Boolean** | `human_present`, `cta_present`, `logo_visible`, `urgency_cue`, `social_proof` | 2 values (true/false) |
+| **Enum** | `colour_palette` (warm, cool, neutral, vibrant, muted, dark, light), `message_angle` (benefit, feature, problem_solution, testimonial, lifestyle, comparison, emotional, other) | 3–8 values |
+| **Integer** | `number_of_people` | Continuous-ish, but low cardinality in practice (0–5) |
+| **String** | `primary_hook`, `cta_text`, `primary_visual_subject` | Free text — high cardinality |
+
+All variables are converted to strings for grouping. Boolean variables become the strings `"true"` and `"false"`. Integer variables are stringified (e.g. `"0"`, `"1"`, `"2"`).
+
+---
+
+## 3. Performance metrics
+
+Five metrics are available for analysis. All are computed as aggregates across the creatives in each group:
+
+| Metric | Formula | Direction |
+|--------|---------|-----------|
+| **CTR** (Click-Through Rate) | `(sum_clicks / sum_impressions) x 100` | Higher is better |
+| **CPC** (Cost Per Click) | `sum_spend / sum_clicks` | Lower is better |
+| **CPA** (Cost Per Acquisition) | `sum_spend / sum_conversions` | Lower is better |
+| **CVR** (Conversion Rate) | `(sum_conversions / sum_clicks) x 100` | Higher is better |
+| **ROAS** (Return on Ad Spend) | `sum_revenue / sum_spend` | Higher is better |
+
+**Note:** Metrics are computed from summed raw values within each group, not as an average of per-creative metrics. For example, if a group has two creatives — one with 10,000 impressions and 200 clicks, another with 500 impressions and 50 clicks — the group CTR is `(250 / 10,500) x 100 = 2.38%`, not the average of the two individual CTRs. This is intentional: it weights by volume, so a creative with 10x more impressions contributes 10x more to the group metric.
+
+---
+
+## 4. Current analysis method: Group-by comparison
+
+### 4.1 How it works
+
+For each variable, the system:
+
+1. **Groups** all creatives by their extracted value for that variable
+2. **Computes** the chosen metric (e.g. CTR) for each group using summed raw values
+3. **Computes** the same metric across all creatives (the overall average)
+4. **Calculates a percentage delta** for each group vs. the overall:
+
+```
+delta = ((group_metric - overall_metric) / overall_metric) x 100
+```
+
+For example, if overall CTR is 2.0% and creatives with `human_present = true` have a CTR of 2.6%, the delta is `+30%` — meaning "creatives with a visible human have 30% higher CTR than the average."
+
+Results are sorted by absolute delta (largest impact first), giving the marketer a ranked list of which variable values matter most.
+
+### 4.2 Confidence assignment
+
+Confidence is assigned based purely on sample size (number of creatives in the group):
+
+| Sample size (n) | Confidence label | Interpretation |
+|-----------------|-----------------|----------------|
+| n < 3 | Insufficient | Results hidden — too few data points |
+| n = 3–4 | Low | Treat as hypothesis only |
+| n = 5–9 | Medium | Directionally useful |
+| n >= 10 | High | More reliable for decision-making |
+
+### 4.3 Limitations of the current approach
+
+This is a **descriptive analysis** — it reports observed differences but does not establish statistical significance or causation. Specific limitations:
+
+1. **No hypothesis testing.** There are no t-tests, chi-square tests, or any p-value calculations. We report that Group A has a higher CTR than Group B, but we do not test whether this difference could have arisen by chance.
+
+2. **No confidence intervals.** The group metric is a point estimate with no error bars. A group with n=5 and a group with n=50 are treated with the same precision.
+
+3. **No effect size standardisation.** We use raw percentage delta, not Cohen's d or similar. This makes it hard to compare the magnitude of effects across variables with different scales.
+
+4. **No multiple comparison correction.** With 24+ variables, each with multiple values, we are making dozens of implicit comparisons. Without a Bonferroni correction or false discovery rate control, some apparent "top findings" are likely noise.
+
+5. **No interaction effects.** Variables are analysed independently. We cannot detect that "warm colours + urgency cue" performs differently than either variable alone. Boolean variables in particular are limited without interaction terms — knowing that `human_present = true` has higher CTR is less actionable without knowing whether it interacts with `text_overlay` or `message_angle`.
+
+6. **No volume weighting in confidence.** A group with 3 creatives that each have 100,000 impressions is labelled "low confidence" (n=3), while a group with 10 creatives with 100 impressions each is "high confidence" (n=10). The former arguably has more statistical power.
+
+7. **No temporal dimension.** All data is treated as a single cross-section. We do not account for time effects (seasonality, fatigue, platform algorithm changes).
+
+8. **No missing data handling.** Creatives with null values for a variable are silently excluded from that variable's analysis. If missingness is non-random (e.g. the AI can't extract `cta_text` when there is no CTA), this biases the groups.
+
+---
+
+## 5. Trust score
+
+The dashboard displays a "Dataset Trust Score" (0–100) as a composite quality indicator. It is not a statistical measure — it is a heuristic to help the user understand how much they should trust the results.
+
+### 5.1 Sub-scores and weights
+
+| Sub-score | Weight | Formula | Interpretation |
+|-----------|--------|---------|----------------|
+| Creative count | 0.20 | `min(100, (n_creatives / 50) x 100)` | Linear scale: 50 creatives = perfect score |
+| Impression volume | 0.15 | `min(100, (log10(total_impressions) / 6) x 100)` | Log scale: 1M impressions = perfect score |
+| Mapping quality | 0.20 | `(confirmed_mappings / total_creatives) x 100` | % of creatives successfully linked to performance data |
+| Data completeness | 0.15 | `(creatives_with_impressions_and_spend / total_creatives) x 100` | % of creatives with non-zero core metrics |
+| Extraction confidence | 0.15 | `avg_extraction_confidence x 100` | Average AI confidence across all extractions (0–1 scale) |
+| Bucket balance | 0.15 | `((total_groups - groups_with_n_lt_3) / total_groups) x 100` | % of variable-value groups with sufficient sample size |
+
+### 5.2 Overall score
+
+```
+trust_score = round(
+    creative_count x 0.20 +
+    volume_score x 0.15 +
+    mapping_quality x 0.20 +
+    data_completeness x 0.15 +
+    extraction_confidence x 0.15 +
+    bucket_balance x 0.15
+)
+```
+
+### 5.3 Trust levels
+
+| Score range | Label |
+|-------------|-------|
+| 80–100 | Excellent |
+| 60–79 | Good |
+| 40–59 | Fair |
+| 0–39 | Poor |
+
+---
+
+## 6. Proposal: regression analysis at 100+ creatives
+
+The current group-by approach is appropriate for small datasets (20–50 creatives) where there are not enough data points to fit a regression model. At 100+ creatives, we propose adding multiple linear regression analysis. Below is the proposed methodology.
+
+### 6.1 Why 100 creatives?
+
+For a regression model with ~25 independent variables:
+- Rule of thumb: 5–10 observations per predictor for stable estimates
+- 25 variables x 4 observations minimum = 100 data points
+- This is conservative for OLS but provides a reasonable starting point for exploratory analysis
+- With dummy encoding of enum variables, effective predictor count may be higher, so 100 is a floor rather than an ideal
+
+### 6.2 Proposed model: multiple linear regression (OLS)
+
+**Dependent variable (Y):** The chosen performance metric (CTR, CPC, CPA, CVR, or ROAS), computed per creative.
+
+**Independent variables (X):** The extracted creative variables, encoded as follows:
+
+| Variable type | Encoding | Example |
+|--------------|----------|---------|
+| **Boolean** | Binary dummy (0/1) | `human_present` → 0 or 1 |
+| **Enum** | One-hot encoding with reference category dropped | `colour_palette` with 7 values → 6 dummy variables, e.g. `colour_warm`, `colour_cool`, ..., `colour_light`, with one chosen as baseline |
+| **Integer** | Used as-is (continuous) | `number_of_people` → 0, 1, 2, ... |
+| **String** | Excluded from regression (too high cardinality) or grouped into categories if feasible | `primary_hook` → excluded; `cta_text` → potentially categorised |
+
+**Model form:**
+
+```
+Y_i = beta_0 + beta_1 * X_1i + beta_2 * X_2i + ... + beta_k * X_ki + epsilon_i
+```
+
+Where:
+- `Y_i` = metric for creative i
+- `X_ji` = value of predictor j for creative i
+- `beta_j` = coefficient (effect of predictor j on Y, holding all others constant)
+- `epsilon_i` = error term
+
+### 6.3 Dummy variable considerations
+
+Boolean variables (e.g. `human_present`, `cta_present`) are dummy variables — they take values 0 or 1. On their own, a regression coefficient for a boolean tells you: "on average, creatives with this feature have beta_j higher/lower metric than creatives without, controlling for other variables."
+
+However, as the consultant may note, **boolean variables on their own have limited explanatory power in regression when they need a continuous variable to interact with for meaningful visualisation.** A scatterplot of a boolean vs. CTR is just two vertical clusters of points. The coefficient is interpretable but the relationship cannot be visualised as a line.
+
+This is why interaction terms are important (see 6.4).
+
+### 6.4 Interaction terms
+
+Key interactions to test:
+
+1. **Boolean x Boolean:** e.g. `human_present x urgency_cue` — does having both a human face AND urgency language perform differently than either alone?
+2. **Boolean x Enum:** e.g. `cta_present x message_angle` — does having a CTA interact with the messaging approach?
+3. **Boolean x Continuous:** e.g. `human_present x number_of_people` — does the presence of a human matter differently depending on how many people are shown?
+
+**Model form with interactions:**
+
+```
+Y_i = beta_0 + beta_1 * human_present_i + beta_2 * urgency_cue_i 
+    + beta_3 * (human_present_i x urgency_cue_i) + ... + epsilon_i
+```
+
+Where `beta_3` captures whether the combined effect of human presence + urgency is different from the sum of their individual effects.
+
+**Feature selection:** With 25+ main effects and potentially hundreds of interactions, we need a selection strategy:
+- Start with main effects only
+- Add interactions between the top 5–10 most significant main effects
+- Use adjusted R-squared or AIC/BIC to evaluate model fit vs. complexity
+- Consider stepwise selection or LASSO regularisation for high-dimensional cases
+
+### 6.5 Interpretation outputs
+
+For the user (a performance marketer, not a statistician), we would present:
+
+1. **Coefficient table:** Each variable, its coefficient, standard error, t-statistic, and p-value. Translated into plain language: "Having a visible human face is associated with +0.3% higher CTR (p = 0.02), holding all other variables constant."
+
+2. **Variable importance ranking:** Variables sorted by absolute t-statistic or standardised coefficient, showing which creative decisions have the most impact.
+
+3. **Interaction insights:** "Creatives with BOTH a human face and urgency language have 1.2% higher CTR — more than the sum of each effect individually."
+
+4. **Model diagnostics:**
+   - R-squared: what % of performance variation is explained by creative variables
+   - Residual plots: are there patterns the model is missing
+   - VIF (Variance Inflation Factor): are variables too correlated with each other
+
+### 6.6 Statistical rigour improvements over current approach
+
+| Current (group-by) | Proposed (regression) |
+|--------------------|----------------------|
+| No significance testing | p-values per coefficient |
+| No confidence intervals | 95% CI per coefficient |
+| Variables analysed independently | All variables controlled for simultaneously |
+| No interaction effects | Interaction terms modelled explicitly |
+| No effect size standardisation | Standardised coefficients available |
+| No multiple comparison correction | Model-level F-test; individual p-values with optional FDR correction |
+| Volume not accounted for in confidence | Can weight observations by impression volume (WLS) |
+
+### 6.7 Weighted least squares (WLS) consideration
+
+Not all creatives have equal statistical reliability — a creative with 100,000 impressions gives a more precise CTR estimate than one with 500 impressions. **Weighted least squares** with weights proportional to impression count (or square root of impressions) would give more influence to higher-volume creatives.
+
+```
+Minimise: sum_i( w_i x (Y_i - X_i * beta)^2 )
+where w_i = impressions_i (or sqrt(impressions_i))
+```
+
+### 6.8 Beyond OLS: potential future extensions
+
+- **Logistic regression** if the dependent variable is binary (e.g. "did this creative beat the median CTR?")
+- **Ridge/LASSO regression** for regularisation when predictors exceed ~50 (after one-hot encoding)
+- **Random forests or gradient boosting** for non-linear relationships and automatic interaction detection
+- **Bayesian regression** for small-sample uncertainty quantification
+- **Mixed effects models** if creatives are nested within campaigns or time periods
+
+---
+
+## 7. Data flow diagram
+
+```
+[Creative Images]          [Performance CSV]
+       |                          |
+       v                          v
+  AI Vision Extraction      Column Mapping
+  (Claude Haiku 4.5)       (auto-detect headers)
+       |                          |
+       v                          v
+  Extracted Variables       Performance Rows
+  (24+ variables per        (impressions, clicks,
+   creative)                 spend, conversions,
+       |                     revenue per creative)
+       |                          |
+       +---------> Matching <-----+
+                  (6 methods)
+                      |
+                      v
+              Matched Creative Data
+              (variables + metrics per creative)
+                      |
+              +-------+-------+
+              |               |
+              v               v
+         Group-by         Regression
+         Analysis         (100+ creatives)
+         (current)        (proposed)
+              |               |
+              v               v
+         Dashboard         Dashboard
+         (deltas,          (coefficients,
+          rankings)         p-values, CI)
+```
+
+---
+
+## 8. Questions for the consultant
+
+1. **Sample size threshold:** Is 100 creatives sufficient for OLS with ~25 predictors + interactions? Should we increase the threshold or use regularisation earlier?
+
+2. **Weighting:** Should we weight by impressions (WLS) in the group-by analysis as well, not just regression? Currently all creatives are treated equally.
+
+3. **Multiple comparisons:** For the current group-by approach, should we apply a Bonferroni correction or FDR control to the delta rankings, even without formal p-values?
+
+4. **Variable selection:** With 24 universal + 4–6 category variables, plus one-hot encoding, we could have 60+ predictors. What regularisation approach do you recommend?
+
+5. **Temporal effects:** If the marketer uploads a new CSV each month, should we model time as a fixed effect or treat each upload as a separate cross-section?
+
+6. **Clustering:** Creatives within the same campaign or ad set may share characteristics. Should we use clustered standard errors or a mixed-effects model?
+
+7. **Non-linear effects:** For integer variables like `number_of_people`, should we include polynomial terms or treat them as categorical?
+
+8. **Practical significance:** What minimum effect size (in the metric's units, e.g. +0.2% CTR) should we flag as "actionable" vs. "statistically significant but negligible"?

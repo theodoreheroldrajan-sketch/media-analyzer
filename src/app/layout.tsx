@@ -1,8 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { ProjectProvider } from "@/context/project-context";
-import Sidebar from "@/components/sidebar";
-import TopBar from "@/components/topbar";
 
 export const metadata: Metadata = {
   title: "Creative Media Analyser",
@@ -17,17 +14,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>
-        <ProjectProvider>
-          <div className="app">
-            <Sidebar />
-            <div className="main">
-              <TopBar />
-              {children}
-            </div>
-          </div>
-        </ProjectProvider>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }
