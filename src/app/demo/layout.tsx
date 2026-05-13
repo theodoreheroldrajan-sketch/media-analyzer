@@ -31,13 +31,10 @@ function DemoShell({ children }: { children: React.ReactNode }) {
             style={{ justifyContent: "space-between" }}
           >
             <div className="crumbs">
-              <strong>Demo Mode</strong>
+              <strong>Creative Media Analyser</strong>
               <span className="sep">·</span>
-              Pick a mode to begin
+              Interactive demo · sample data only
             </div>
-            <a href="/" className="btn btn-sm">
-              ← Exit demo
-            </a>
           </div>
           {children}
         </div>

@@ -1,7 +1,6 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useDemo } from "@/context/demo-context";
 
 export default function DemoModeChooserPage() {
@@ -121,11 +120,6 @@ export default function DemoModeChooserPage() {
         </button>
       </div>
 
-      <div style={{ textAlign: "center", marginTop: 32 }}>
-        <Link href="/" className="muted" style={{ fontSize: 13 }}>
-          ← Back to home
-        </Link>
-      </div>
     </div>
   );
 }
