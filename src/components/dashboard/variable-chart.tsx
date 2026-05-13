@@ -78,7 +78,7 @@ export default function VariableChart({
                 className="bar-fill"
                 style={{
                   width: animate ? `${barWidth}%` : "0%",
-                  background: good ? "var(--green)" : "var(--red)",
+                  background: good ? "linear-gradient(90deg, #1e8e3e, #34a853)" : "linear-gradient(90deg, #d93025, #ea4335)",
                   transitionDelay: `${i * 40}ms`,
                 }}
               />

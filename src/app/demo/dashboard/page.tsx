@@ -26,7 +26,7 @@ function DashboardContent() {
   const payload = data.dashboards[metric];
 
   return (
-    <div className="page" style={{ maxWidth: "none" }}>
+    <div className="page" style={{ maxWidth: "1400px" }}>
       <div className="page-head">
         <p className="page-eyebrow">
           Step 07 · Demo ({mode === "pro" ? "Pro" : "Lite"})
@@ -48,7 +48,7 @@ function DashboardContent() {
         regressionThreshold={payload.regressionThreshold}
       />
 
-      <div className="grid-2 mb-2">
+      <div className="dashboard-trust-metrics mb-2">
         <TrustScorePanel trustScore={payload.trustScore} />
         <KeyMetricsPanel keyMetrics={payload.keyMetrics} metric={metric} />
       </div>
