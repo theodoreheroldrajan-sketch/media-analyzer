@@ -60,6 +60,9 @@ export default function HomePage() {
               Start new project →
             </Link>
           )}
+          <Link href="/demo" className="btn">
+            Try interactive demo →
+          </Link>
         </div>
 
         {!loading && project && (
