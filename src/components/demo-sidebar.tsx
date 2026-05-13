@@ -2,10 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useDemo } from "@/context/demo-context";
 
 const steps = [
-  { href: "/demo", label: "Demo Home", path: "/" },
+  { href: "/demo", label: "Mode", path: "/" },
   { href: "/demo/setup", label: "Setup", path: "/setup" },
+  { href: "/demo/instructions", label: "Instructions", path: "/instructions" },
   { href: "/demo/upload", label: "Upload", path: "/upload" },
   { href: "/demo/mapping", label: "Mapping", path: "/mapping" },
   { href: "/demo/variables", label: "Variables", path: "/variables" },
@@ -15,18 +17,35 @@ const steps = [
 
 export default function DemoSidebar() {
   const pathname = usePathname();
+  const { mode } = useDemo();
 
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
         <p className="sidebar-brand">Creative Media Analyser</p>
-        <p className="sidebar-project">Interactive Demo</p>
-        <p className="sidebar-project-meta">GlowLab · E-commerce</p>
+        <p className="sidebar-project">
+          Interactive Demo
+          {mode && (
+            <span
+              className="badge mono"
+              style={{
+                marginLeft: 8,
+                fontSize: 10,
+                color: mode === "pro" ? "var(--accent-text)" : "var(--text-2)",
+              }}
+            >
+              {mode.toUpperCase()}
+            </span>
+          )}
+        </p>
+        <p className="sidebar-project-meta">
+          GlowLab · {mode === "pro" ? "120" : "40"} creatives
+        </p>
       </div>
       <ul className="stepper">
         {steps.map((step, i) => {
           const isActive = step.href === pathname;
-          const isDone = !isActive; // All steps "complete" in demo
+          const isDone = !isActive;
 
           return (
             <li key={step.href}>

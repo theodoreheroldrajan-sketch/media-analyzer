@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useDemo } from "@/context/demo-context";
+import DemoModeGuard from "@/components/demo-mode-guard";
 
-export default function DemoSetupPage() {
-  const { project } = useDemo();
+function SetupContent() {
+  const { data } = useDemo();
+  const project = data!.project;
 
   const [name, setName] = useState(project.name);
   const [brand, setBrand] = useState(project.brand_name);
@@ -30,38 +32,22 @@ export default function DemoSetupPage() {
         <div className="field-row">
           <div className="field">
             <label className="label">Project name</label>
-            <input
-              className="input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
+            <input className="input" value={name} onChange={(e) => setName(e.target.value)} />
           </div>
           <div className="field">
             <label className="label">Brand name</label>
-            <input
-              className="input"
-              value={brand}
-              onChange={(e) => setBrand(e.target.value)}
-            />
+            <input className="input" value={brand} onChange={(e) => setBrand(e.target.value)} />
           </div>
         </div>
 
         <div className="field-row">
           <div className="field">
             <label className="label">Category</label>
-            <input
-              className="input"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            />
+            <input className="input" value={category} onChange={(e) => setCategory(e.target.value)} />
           </div>
           <div className="field">
             <label className="label">Platform</label>
-            <select
-              className="select"
-              value={platform}
-              onChange={(e) => setPlatform(e.target.value)}
-            >
+            <select className="select" value={platform} onChange={(e) => setPlatform(e.target.value)}>
               <option>Meta Ads</option>
               <option>Google Ads</option>
               <option>TikTok Ads</option>
@@ -73,11 +59,7 @@ export default function DemoSetupPage() {
         <div className="field-row">
           <div className="field">
             <label className="label">Primary KPI</label>
-            <select
-              className="select"
-              value={kpi}
-              onChange={(e) => setKpi(e.target.value)}
-            >
+            <select className="select" value={kpi} onChange={(e) => setKpi(e.target.value)}>
               <option value="ctr">CTR</option>
               <option value="cpc">CPC</option>
               <option value="cpa">CPA</option>
@@ -87,33 +69,33 @@ export default function DemoSetupPage() {
           </div>
           <div className="field">
             <label className="label">Target audience</label>
-            <input
-              className="input"
-              value={audience}
-              onChange={(e) => setAudience(e.target.value)}
-            />
+            <input className="input" value={audience} onChange={(e) => setAudience(e.target.value)} />
           </div>
         </div>
 
         <div className="field">
           <label className="label">Campaign goal</label>
-          <textarea
-            className="textarea"
-            value={goal}
-            onChange={(e) => setGoal(e.target.value)}
-          />
+          <textarea className="textarea" value={goal} onChange={(e) => setGoal(e.target.value)} />
         </div>
       </div>
 
       <div className="page-actions">
         <Link href="/demo" className="btn">
-          ← Back
+          ← Change mode
         </Link>
         <div className="spacer" />
-        <Link href="/demo/upload" className="btn btn-primary">
-          Continue to upload →
+        <Link href="/demo/instructions" className="btn btn-primary">
+          Continue to instructions →
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function DemoSetupPage() {
+  return (
+    <DemoModeGuard>
+      <SetupContent />
+    </DemoModeGuard>
   );
 }

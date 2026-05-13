@@ -1,8 +1,14 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { MetricKey, VariablePerformance } from "@/lib/analytics";
+import type { MetricKey, VariablePerformance, CreativeData } from "@/lib/analytics";
+import type { VariableInteraction } from "@/lib/demo-data";
 import VariableChart from "./variable-chart";
+import ChartTypeSelector, { type ChartType } from "./charts/chart-type-selector";
+import ScatterChart from "./charts/scatter-chart";
+import RegressionChart from "./charts/regression-chart";
+import DistributionChart from "./charts/distribution-chart";
+import HeatmapChart from "./charts/heatmap-chart";
 
 const METRIC_LABELS: Record<MetricKey, string> = {
   ctr: "CTR",
@@ -19,11 +25,16 @@ function isLowerBetter(metric: MetricKey): boolean {
 export default function VariableExplorer({
   varPerf,
   metric,
+  isPro = false,
+  creativeData,
+  interactions,
 }: {
   varPerf: VariablePerformance[];
   metric: MetricKey;
+  isPro?: boolean;
+  creativeData?: CreativeData[];
+  interactions?: VariableInteraction[];
 }) {
-  // Group by variable name
   const grouped = useMemo(() => {
     const map = new Map<string, VariablePerformance[]>();
     for (const vp of varPerf) {
@@ -36,17 +47,12 @@ export default function VariableExplorer({
   const variableNames = useMemo(() => Array.from(grouped.keys()), [grouped]);
 
   const [selected, setSelected] = useState<string>(variableNames[0] ?? "");
+  const [chartType, setChartType] = useState<ChartType>("bar");
 
-  // Update selected if variable list changes
-  if (selected && !grouped.has(selected) && variableNames.length > 0) {
-    // Can't call setState in render, so we use fallback
-  }
-  const activeVariable = grouped.has(selected)
-    ? selected
-    : variableNames[0] ?? "";
+  const activeVariable = grouped.has(selected) ? selected : variableNames[0] ?? "";
   const activeData = grouped.get(activeVariable) ?? [];
 
-  // Compute mini stats for the active variable
+  // For mini stats
   const validData = activeData.filter((d) => d.confidence !== "insufficient");
   const bestRow = validData.length > 0
     ? validData.reduce((best, d) =>
@@ -63,6 +69,20 @@ export default function VariableExplorer({
       )
     : null;
 
+  // Available chart types
+  const availableCharts: ChartType[] = isPro
+    ? ["bar", "scatter", "regression", "distribution", "heatmap"]
+    : ["bar"];
+
+  // For heatmap, find matching interaction
+  const heatmapInteraction = interactions?.find(
+    (i) => i.var1 === activeVariable || i.var2 === activeVariable
+  ) ?? interactions?.[0];
+
+  // For Pro regression mocked stats
+  const proCoef = activeData[0]?.delta ? activeData[0].delta / 100 * 0.5 : undefined;
+  const proPValue = isPro ? (activeData[0]?.confidence === "high" ? 0.02 : 0.08) : undefined;
+
   return (
     <div className="panel variable-explorer">
       <div className="between">
@@ -70,11 +90,21 @@ export default function VariableExplorer({
           <h3 className="panel-title">Variable explorer</h3>
           <p className="panel-sub" style={{ marginBottom: 0 }}>
             Select a variable to see how each value performs against{" "}
-            <strong>{METRIC_LABELS[metric]}</strong>. Bars show % difference
-            from the overall average.
+            <strong>{METRIC_LABELS[metric]}</strong>.
+            {isPro && " Pick a chart type to view it in different ways."}
           </p>
         </div>
       </div>
+
+      {isPro && (
+        <div className="mt-3">
+          <ChartTypeSelector
+            active={chartType}
+            onChange={setChartType}
+            available={availableCharts}
+          />
+        </div>
+      )}
 
       {/* Variable pill selector */}
       <div className="var-pills mt-3">
@@ -91,11 +121,39 @@ export default function VariableExplorer({
 
       {/* Chart */}
       <div className="mt-3">
-        <VariableChart data={activeData} metric={metric} />
+        {chartType === "bar" && (
+          <VariableChart data={activeData} metric={metric} />
+        )}
+        {chartType === "scatter" && creativeData && (
+          <ScatterChart
+            data={creativeData}
+            metric={metric}
+            colorByVariable={activeVariable}
+          />
+        )}
+        {chartType === "regression" && creativeData && (
+          <RegressionChart
+            data={creativeData}
+            metric={metric}
+            mockedCoef={proCoef}
+            mockedPValue={proPValue}
+          />
+        )}
+        {chartType === "distribution" && creativeData && (
+          <DistributionChart data={creativeData} metric={metric} />
+        )}
+        {chartType === "heatmap" && heatmapInteraction && (
+          <HeatmapChart interaction={heatmapInteraction} metric={metric} />
+        )}
+        {chartType === "heatmap" && !heatmapInteraction && (
+          <div className="muted" style={{ padding: 24, textAlign: "center" }}>
+            No interaction data available for this variable.
+          </div>
+        )}
       </div>
 
-      {/* Mini stats row */}
-      {bestRow && worstRow && (
+      {/* Mini stats row — only show for bar chart */}
+      {chartType === "bar" && bestRow && worstRow && (
         <div className="explorer-stats mt-3">
           <div className="explorer-stat">
             <span className="explorer-stat-label">Best performer</span>
