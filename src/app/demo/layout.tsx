@@ -1,5 +1,9 @@
+"use client";
+
+import { usePathname } from "next/navigation";
 import { DemoProvider } from "@/context/demo-context";
 import DemoSidebar from "@/components/demo-sidebar";
+import DemoBanner from "@/components/demo-banner";
 
 export default function DemoLayout({
   children,
@@ -8,9 +12,20 @@ export default function DemoLayout({
 }) {
   return (
     <DemoProvider>
+      <DemoShell>{children}</DemoShell>
+    </DemoProvider>
+  );
+}
+
+function DemoShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isLanding = pathname === "/demo";
+
+  // On the landing page, don't show the sidebar — let user pick mode first
+  if (isLanding) {
+    return (
       <div className="app">
-        <DemoSidebar />
-        <div className="main">
+        <div className="main" style={{ width: "100%" }}>
           <div
             className="topbar"
             style={{ justifyContent: "space-between" }}
@@ -18,23 +33,38 @@ export default function DemoLayout({
             <div className="crumbs">
               <strong>Demo Mode</strong>
               <span className="sep">·</span>
-              Sample data — no API calls
+              Pick a mode to begin
             </div>
             <a href="/" className="btn btn-sm">
               ← Exit demo
             </a>
           </div>
-          <div className="demo-banner">
-            <span>📊</span>
-            <span>
-              <strong>Interactive demo</strong> — exploring sample data for a
-              fictional DTC skincare brand. All fields are editable, nothing is
-              saved.
-            </span>
-          </div>
           {children}
         </div>
       </div>
-    </DemoProvider>
+    );
+  }
+
+  return (
+    <div className="app">
+      <DemoSidebar />
+      <div className="main">
+        <div
+          className="topbar"
+          style={{ justifyContent: "space-between" }}
+        >
+          <div className="crumbs">
+            <strong>Demo Mode</strong>
+            <span className="sep">·</span>
+            Sample data — no API calls
+          </div>
+          <a href="/demo" className="btn btn-sm">
+            ← Change mode
+          </a>
+        </div>
+        <DemoBanner />
+        {children}
+      </div>
+    </div>
   );
 }
