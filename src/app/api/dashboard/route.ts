@@ -85,18 +85,29 @@ export async function GET(request: NextRequest) {
       creativeToPerfMap.set(m.creative_id, m.performance_row_id);
     }
 
-    // 4. Get performance rows
+    // 4. Get performance rows — latest snapshot only
     const perfIds = [...new Set((mappings ?? []).map((m) => m.performance_row_id))];
     const { data: perfRows } = await supabase
       .from("performance_rows")
       .select(
-        "id, impressions, clicks, spend, conversions, revenue"
+        "id, impressions, clicks, spend, conversions, revenue, is_latest"
       )
-      .in("id", perfIds.length > 0 ? perfIds : ["__none__"]);
+      .in("id", perfIds.length > 0 ? perfIds : ["__none__"])
+      .eq("is_latest", true);
 
     const perfMap = new Map(
       (perfRows ?? []).map((p) => [p.id, p])
     );
+
+    // 4b. Snapshot indicator info — current and total upload count
+    const { data: uploadList } = await supabase
+      .from("performance_uploads")
+      .select("snapshot_number")
+      .eq("project_id", projectId)
+      .order("snapshot_number", { ascending: false });
+
+    const totalSnapshots = uploadList?.length ?? 0;
+    const currentSnapshot = uploadList?.[0]?.snapshot_number ?? 0;
 
     // 5. Get creative filenames
     const creativeIds = extractions.map((e) => e.creative_id);
@@ -131,12 +142,26 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // 7. Get the variable schema to know which variables to analyse
-    const { data: schema } = await supabase
-      .from("variable_schemas")
-      .select("variables")
-      .eq("id", run.schema_id)
-      .single();
+    // 7. Get the variable schema to know which variables to analyse,
+    //    plus the project row for hypothesis (pre-registered) variables.
+    const [{ data: schema }, { data: projectRow }] = await Promise.all([
+      supabase
+        .from("variable_schemas")
+        .select("variables")
+        .eq("id", run.schema_id)
+        .single(),
+      supabase
+        .from("projects")
+        .select("pre_registered_variables")
+        .eq("id", projectId)
+        .single(),
+    ]);
+
+    const hypothesisVariables = Array.isArray(
+      projectRow?.pre_registered_variables
+    )
+      ? (projectRow.pre_registered_variables as string[])
+      : [];
 
     const variables = (schema?.variables as VariableDefinition[]) ?? [];
     const enabledVarNames = variables
@@ -237,6 +262,9 @@ export async function GET(request: NextRequest) {
       regressionReady: creativeData.length >= 100,
       creativeCount: creativeData.length,
       regressionThreshold: 100,
+      hypothesisVariables,
+      currentSnapshot,
+      totalSnapshots,
     });
   } catch (err) {
     return NextResponse.json(

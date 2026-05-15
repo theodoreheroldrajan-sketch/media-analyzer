@@ -79,7 +79,7 @@ Confidence is assigned based purely on sample size (number of creatives in the g
 
 | Sample size (n) | Confidence label | Interpretation |
 |-----------------|-----------------|----------------|
-| n < 3 | Insufficient | Results hidden — too few data points |
+| n < 3 | Insufficient | Excluded from charts; shown with placeholder values ("—") in the variable performance table for transparency |
 | n = 3–4 | Low | Treat as hypothesis only |
 | n = 5–9 | Medium | Directionally useful |
 | n >= 10 | High | More reliable for decision-making |
@@ -123,16 +123,19 @@ The dashboard displays a "Dataset Trust Score" (0–100) as a composite quality 
 
 ### 5.2 Overall score
 
+**v2 update (2026-05-15):** the composite was previously a weighted average of all six sub-scores. It is now floor-gated. The first three sub-scores (creative count, mapping quality, data completeness) are floor conditions — the composite cannot exceed the worst of them. The remaining three (volume, extraction confidence, bucket balance) contribute proportionally on top of that floor. A dataset with mapping quality of 40 cannot score above 40 regardless of how strong the other components look — which closes the previous failure mode where a low mapping rate could be averaged away to "Good."
+
 ```
-trust_score = round(
-    creative_count x 0.20 +
-    volume_score x 0.15 +
-    mapping_quality x 0.20 +
-    data_completeness x 0.15 +
-    extraction_confidence x 0.15 +
-    bucket_balance x 0.15
-)
+floor_score = min(creative_count, mapping_quality, data_completeness)
+upper_score = volume_score x 0.4
+            + extraction_confidence x 0.3
+            + bucket_balance x 0.3
+trust_score = round(floor_score x (upper_score / 100))
 ```
+
+All six sub-scores remain visible in the trust panel UI regardless of the composite. The floor-gating only affects the headline number.
+
+**Note on `extraction_confidence`:** the extraction_results.confidence column is present in schema but never populated (the Anthropic tool_use API does not return a self-confidence score). Every extraction reads the fallback value `0.8`, so the `extraction_confidence` sub-score is effectively a constant 80 in production. See `INVESTIGATION_CONFIDENCE.md` for details and the recommended follow-up.
 
 ### 5.3 Trust levels
 

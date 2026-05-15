@@ -1,14 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDemo } from "@/context/demo-context";
 import DemoModeGuard from "@/components/demo-mode-guard";
-import type { MetricKey } from "@/lib/analytics";
+import {
+  computeModelStability,
+  countPredictors,
+  type MetricKey,
+} from "@/lib/analytics";
+import { getDemoVariables } from "@/lib/demo-data";
 
 import MetricSwitcher from "@/components/dashboard/metric-switcher";
 import SummaryHeader from "@/components/dashboard/summary-header";
-import TrustScorePanel from "@/components/dashboard/trust-score-panel";
+import TrustScorePanel, {
+  type ModelStabilityInfo,
+} from "@/components/dashboard/trust-score-panel";
 import KeyMetricsPanel from "@/components/dashboard/key-metrics-panel";
 import VariableExplorer from "@/components/dashboard/variable-explorer";
 import VariableTable from "@/components/dashboard/variable-table";
@@ -17,16 +24,57 @@ import InsightsPanel from "@/components/dashboard/insights-panel";
 import RegressionTable from "@/components/dashboard/regression-table";
 import InteractionMatrix from "@/components/dashboard/interaction-matrix";
 
+const ENABLED_VARS_KEY = "media-analyzer-enabled-vars";
+const HYPOTHESIS_VARS_KEY = "media-analyzer-hypothesis-vars";
+
 function DashboardContent() {
   const { data, mode } = useDemo();
   const [metric, setMetric] = useState<MetricKey>("ctr");
+  const [enabledVars, setEnabledVars] = useState<Record<string, boolean> | null>(
+    null
+  );
+  const [hypothesisVars, setHypothesisVars] = useState<string[]>([]);
+
+  // Read enabled-vars and hypothesis selections from the /variables page
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(ENABLED_VARS_KEY);
+      if (raw) setEnabledVars(JSON.parse(raw));
+      const rawHyp = window.localStorage.getItem(HYPOTHESIS_VARS_KEY);
+      if (rawHyp) {
+        const parsed = JSON.parse(rawHyp);
+        if (Array.isArray(parsed)) setHypothesisVars(parsed);
+      }
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  // Compute model stability (Pro only) from enabled predictors
+  const modelStability = useMemo<ModelStabilityInfo | undefined>(() => {
+    if (mode !== "pro" || !data) return undefined;
+    const demoVars = getDemoVariables();
+    const active = enabledVars
+      ? demoVars.filter((v) => enabledVars[v.name] !== false)
+      : demoVars;
+    const predictorCount = countPredictors(active);
+    const creativeCount = data.creativeData.length;
+    const ratio = predictorCount > 0 ? creativeCount / predictorCount : 0;
+    return {
+      color: computeModelStability(creativeCount, predictorCount),
+      ratio,
+      predictorCount,
+      creativeCount,
+    };
+  }, [mode, data, enabledVars]);
 
   if (!data) return null;
   const isPro = mode === "pro";
   const payload = data.dashboards[metric];
 
   return (
-    <div className="page" style={{ maxWidth: "none" }}>
+    <div className="page" style={{ maxWidth: "1400px" }}>
       <div className="page-head">
         <p className="page-eyebrow">
           Step 07 · Demo ({mode === "pro" ? "Pro" : "Lite"})
@@ -48,8 +96,11 @@ function DashboardContent() {
         regressionThreshold={payload.regressionThreshold}
       />
 
-      <div className="grid-2 mb-2">
-        <TrustScorePanel trustScore={payload.trustScore} />
+      <div className="dashboard-trust-metrics mb-2">
+        <TrustScorePanel
+          trustScore={payload.trustScore}
+          modelStability={modelStability}
+        />
         <KeyMetricsPanel keyMetrics={payload.keyMetrics} metric={metric} />
       </div>
 
@@ -63,7 +114,10 @@ function DashboardContent() {
 
       {/* Pro-only: regression table */}
       {isPro && data.regressionModels && (
-        <RegressionTable model={data.regressionModels[metric]} />
+        <RegressionTable
+          model={data.regressionModels[metric]}
+          hypothesisVariables={hypothesisVars}
+        />
       )}
 
       {/* Pro-only: interaction matrix */}
@@ -74,7 +128,11 @@ function DashboardContent() {
         />
       )}
 
-      <VariableTable varPerf={payload.variablePerformance} metric={metric} />
+      <VariableTable
+        varPerf={payload.variablePerformance}
+        metric={metric}
+        hypothesisVariables={hypothesisVars}
+      />
 
       <CreativeGallery
         gallery={payload.gallery}
@@ -82,7 +140,10 @@ function DashboardContent() {
         creativeData={data.creativeData}
       />
 
-      <InsightsPanel insights={data.insights} />
+      <InsightsPanel
+        insights={data.insights}
+        hypothesisVariables={hypothesisVars}
+      />
 
       <div className="page-actions">
         <Link href="/demo/analysis" className="btn">← Back to analysis</Link>

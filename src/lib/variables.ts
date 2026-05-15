@@ -272,7 +272,7 @@ const CATEGORY_TEMPLATES: Record<string, VariableDefinition[]> = {
 
   saas: [
     {
-      name: "screenshot_visible",
+      name: "screenshot",
       type: "boolean",
       description: "Whether a product screenshot or UI is shown",
       source: "category",
@@ -301,9 +301,10 @@ const CATEGORY_TEMPLATES: Record<string, VariableDefinition[]> = {
       enabled: true,
     },
     {
-      name: "integration_mentioned",
-      type: "boolean",
-      description: "Whether integrations with other tools are mentioned",
+      name: "persona_targeted",
+      type: "enum",
+      enum_values: ["developer", "marketer", "designer", "executive", "operator", "generalist", "other"],
+      description: "Which professional persona the creative is targeted at",
       source: "category",
       enabled: true,
     },

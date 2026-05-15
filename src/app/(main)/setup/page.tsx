@@ -104,7 +104,7 @@ export default function SetupPage() {
   return (
     <div className="page">
       <div className="page-head">
-        <p className="page-eyebrow">Step 02 of 09</p>
+        <p className="page-eyebrow">Step 01 of 08</p>
         <h1 className="page-title">Set up your project</h1>
         <p className="page-sub">
           Tell us about the brand and what you&apos;re optimising for. This

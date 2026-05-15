@@ -201,12 +201,13 @@ export async function GET(request: NextRequest) {
         (mappings ?? []).map((m) => [m.creative_id, m.performance_row_id])
       );
 
-      // Get perf rows
+      // Get perf rows — latest snapshot only
       const perfIds = [...new Set((mappings ?? []).map((m) => m.performance_row_id))];
       const { data: perfRows } = await supabase
         .from("performance_rows")
         .select("id, impressions, clicks, spend, conversions, revenue")
-        .in("id", perfIds.length > 0 ? perfIds : ["__none__"]);
+        .in("id", perfIds.length > 0 ? perfIds : ["__none__"])
+        .eq("is_latest", true);
 
       const perfMap = new Map((perfRows ?? []).map((p) => [p.id, p]));
 

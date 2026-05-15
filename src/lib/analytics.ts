@@ -28,6 +28,8 @@ export type VariablePerformance = {
   avgMetric: number;
   overallAvg: number;
   delta: number; // percentage difference vs overall
+  delta95Lower: number; // bootstrap 95% CI lower bound on delta
+  delta95Upper: number; // bootstrap 95% CI upper bound on delta
   confidence: "high" | "medium" | "low" | "insufficient";
 };
 
@@ -44,6 +46,79 @@ export type KeyMetrics = {
   avgCVR: number;
   avgROAS: number;
 };
+
+/**
+ * Noise-adjusted ranking for exploratory findings.
+ * Penalises small-N findings even when their absolute delta is large.
+ * Used to order "patterns to investigate" so a 30% delta from n=3
+ * ranks below a 15% delta from n=20.
+ */
+export function noiseAdjustedRank(varPerf: VariablePerformance): number {
+  return Math.abs(varPerf.delta) * Math.sqrt(varPerf.count);
+}
+
+/**
+ * Benjamini–Hochberg false-discovery rate adjustment.
+ * Takes an array of raw p-values, returns adjusted p-values aligned to
+ * the input order. Used to control FDR on exploratory variables that
+ * were not pre-registered as hypotheses.
+ */
+export function benjaminiHochberg(pValues: number[]): number[] {
+  const n = pValues.length;
+  if (n === 0) return [];
+
+  // Pair p-values with their original index, then sort ascending
+  const indexed = pValues.map((p, i) => ({ p, i }));
+  indexed.sort((a, b) => a.p - b.p);
+
+  // Compute adjusted p-values, then enforce monotonicity from the largest down
+  const adjusted = new Array<number>(n);
+  let running = 1;
+  for (let rank = n - 1; rank >= 0; rank--) {
+    const raw = indexed[rank].p * n / (rank + 1);
+    running = Math.min(running, raw);
+    adjusted[indexed[rank].i] = Math.min(1, running);
+  }
+  return adjusted;
+}
+
+export type ModelStability = "green" | "yellow" | "red";
+
+/**
+ * Compute model-stability colour based on observations per predictor.
+ * Green: 10+ obs/predictor. Yellow: 5-10. Red: under 5.
+ * Independent of the Pro unlock threshold (still 100 creatives).
+ */
+export function computeModelStability(
+  creativeCount: number,
+  predictorCount: number
+): ModelStability {
+  if (predictorCount <= 0) return "red";
+  const ratio = creativeCount / predictorCount;
+  if (ratio >= 10) return "green";
+  if (ratio >= 5) return "yellow";
+  return "red";
+}
+
+/**
+ * Count predictors from a list of enabled variable definitions.
+ * - boolean: 1 predictor
+ * - enum: (levels - 1) predictors (drop reference category for one-hot)
+ * - integer: 1 predictor
+ * - string: excluded (not modelled)
+ */
+export function countPredictors(
+  vars: { type: "boolean" | "enum" | "integer" | "string"; values?: string[] }[]
+): number {
+  let count = 0;
+  for (const v of vars) {
+    if (v.type === "boolean") count += 1;
+    else if (v.type === "integer") count += 1;
+    else if (v.type === "enum") count += Math.max(0, (v.values?.length ?? 0) - 1);
+    // string: skip
+  }
+  return count;
+}
 
 export type TrustScore = {
   overall: number;
@@ -96,6 +171,47 @@ export function computeKeyMetrics(data: CreativeData[]): KeyMetrics {
     avgCVR: totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0,
     avgROAS: totalSpend > 0 ? totalRevenue / totalSpend : 0,
   };
+}
+
+/**
+ * Resample an array with replacement (bootstrap sampling).
+ */
+function resampleWithReplacement<T>(arr: T[], n: number): T[] {
+  const out: T[] = new Array(n);
+  const len = arr.length;
+  for (let i = 0; i < n; i++) {
+    out[i] = arr[Math.floor(Math.random() * len)];
+  }
+  return out;
+}
+
+/**
+ * Compute a 95% bootstrap confidence interval on the percentage delta
+ * between a group's metric and the overall metric.
+ *
+ * Uses volume-weighted aggregation (via getMetricValue / sum-of-raws)
+ * inside each bootstrap iteration.
+ */
+function bootstrapDeltaCI(
+  group: CreativeData[],
+  overall: CreativeData[],
+  metric: MetricKey,
+  iterations = 1000
+): { lower95: number; upper95: number } {
+  const deltas: number[] = new Array(iterations);
+
+  for (let i = 0; i < iterations; i++) {
+    const groupSample = resampleWithReplacement(group, group.length);
+    const overallSample = resampleWithReplacement(overall, overall.length);
+    const g = getMetricValue(groupSample, metric);
+    const o = getMetricValue(overallSample, metric);
+    deltas[i] = o !== 0 ? ((g - o) / o) * 100 : 0;
+  }
+
+  deltas.sort((a, b) => a - b);
+  const loIdx = Math.floor(deltas.length * 0.025);
+  const hiIdx = Math.floor(deltas.length * 0.975);
+  return { lower95: deltas[loIdx], upper95: deltas[hiIdx] };
 }
 
 /**
@@ -175,6 +291,16 @@ export function computeVariablePerformance(
         confidence = "high";
       }
 
+      // Bootstrap 95% CI on the delta. Skip for insufficient samples —
+      // resampling 1 or 2 points just returns the same point estimate.
+      let delta95Lower = delta;
+      let delta95Upper = delta;
+      if (confidence !== "insufficient") {
+        const ci = bootstrapDeltaCI(group, data, metric, 1000);
+        delta95Lower = ci.lower95;
+        delta95Upper = ci.upper95;
+      }
+
       results.push({
         variable,
         value,
@@ -182,6 +308,8 @@ export function computeVariablePerformance(
         avgMetric,
         overallAvg,
         delta,
+        delta95Lower,
+        delta95Upper,
         confidence,
       });
     }
@@ -234,15 +362,14 @@ export function computeTrustScore(
       ? ((totalBuckets - insufficientBuckets) / totalBuckets) * 100
       : 50;
 
-  // Weighted average
-  const overall = Math.round(
-    creativeCount * 0.2 +
-      volumeScore * 0.15 +
-      mappingQuality * 0.2 +
-      dataCompleteness * 0.15 +
-      extractionConfidence * 0.15 +
-      bucketBalance * 0.15
-  );
+  // Floor-gated composite. Creative count, mapping quality, and data
+  // completeness are floor conditions — the lowest of the three caps the
+  // overall score. Volume, extraction confidence, and bucket balance
+  // contribute proportionally on top of that floor.
+  const floorScore = Math.min(creativeCount, mappingQuality, dataCompleteness);
+  const upperScore =
+    volumeScore * 0.4 + extractionConfidence * 0.3 + bucketBalance * 0.3;
+  const overall = Math.round(floorScore * (upperScore / 100));
 
   const level: TrustScore["level"] =
     overall >= 80

@@ -12,6 +12,7 @@ export type Database = {
           primary_kpi: string;
           tone: string | null;
           platform: string;
+          pre_registered_variables: string[];
           created_at: string;
           updated_at: string;
         };
@@ -24,6 +25,7 @@ export type Database = {
           primary_kpi: string;
           tone?: string | null;
           platform: string;
+          pre_registered_variables?: string[];
           id?: string;
           created_at?: string;
           updated_at?: string;
@@ -37,6 +39,7 @@ export type Database = {
           primary_kpi?: string;
           tone?: string | null;
           platform?: string;
+          pre_registered_variables?: string[];
         };
         Relationships: [];
       };

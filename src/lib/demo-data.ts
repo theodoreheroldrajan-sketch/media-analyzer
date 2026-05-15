@@ -73,6 +73,8 @@ export type DemoInsight = {
   type: "positive" | "negative" | "neutral";
   variable: string;
   delta: string;
+  /** Hypothesis = pre-registered; exploratory = pattern detected without prior hypothesis */
+  category: "hypothesis" | "exploratory";
 };
 
 export type DemoDashboardPayload = {
@@ -618,52 +620,59 @@ export function generateDemoData(mode: DemoMode = "lite"): DemoDataSet {
   const insights: DemoInsight[] = mode === "pro" ? [
     {
       title: "Human faces show strongest CTR coefficient",
-      body: "Regression analysis shows face_visible has the largest standardised coefficient on CTR (β = +0.34, p < 0.001) across 120 creatives, controlling for all other variables. This effect is robust across campaign periods.",
+      body: "Regression on 120 creatives places face_visible at the top of the standardised coefficient ranking for CTR (β = +0.34, p < 0.001), after controlling for all other variables. The pattern is consistent across campaign periods.",
       type: "positive",
       variable: "face_visible",
       delta: "β=+0.34, p<0.001",
+      category: "hypothesis",
     },
     {
       title: "Urgency × offer interaction",
-      body: "Creatives combining urgency_cue=true AND offer_present=true outperform the additive effect — interaction term is statistically significant (p = 0.018). Pair these elements deliberately in future creatives.",
+      body: "Creatives combining urgency_cue=true AND offer_present=true show a positive interaction term (p = 0.018) beyond what either variable contributes alone. Worth testing deliberate pairings in future creatives.",
       type: "positive",
       variable: "urgency_cue × offer_present",
       delta: "interaction p=0.018",
+      category: "hypothesis",
     },
     {
       title: "Visual clutter is the strongest negative predictor",
-      body: "cluttered=true shows β = -0.41 on ROAS (p < 0.001). This is the largest negative effect in the model. The pattern holds even after controlling for text_density and visual subject matter.",
+      body: "cluttered=true shows β = -0.41 on ROAS (p < 0.001), the largest negative effect in this model. The pattern persists after controlling for text_density and subject matter.",
       type: "negative",
       variable: "visual_clutter",
       delta: "β=-0.41 on ROAS",
+      category: "exploratory",
     },
     {
-      title: "Warm palette outperforms cool — moderate effect",
-      body: "Warm vs cool colour palette shows a +11% CTR delta in raw group-by analysis, but the regression coefficient (β = +0.18, p = 0.04) is more conservative. Real effect likely between 5-15%.",
+      title: "Warm palette directional signal, conservative effect",
+      body: "Warm vs cool palette shows +11% CTR in raw group-by analysis, but the regression coefficient (β = +0.18, p = 0.04) is more conservative. The real effect likely sits between 5-15% on this sample.",
       type: "positive",
       variable: "colour_palette",
       delta: "β=+0.18, p=0.04",
+      category: "exploratory",
     },
     {
-      title: "Lifestyle context beats studio shots",
-      body: "lifestyle_vs_studio=lifestyle shows β = +0.27 (p = 0.003) on CTR. Effect is larger for consideration-stage funnel (β = +0.41) than conversion-stage (β = +0.12), suggesting context matters more upper-funnel.",
+      title: "Lifestyle context out-correlates studio shots",
+      body: "lifestyle_vs_studio=lifestyle shows β = +0.27 on CTR (p = 0.003). The effect is larger in the consideration-stage funnel (β = +0.41) than conversion-stage (β = +0.12) on this dataset.",
       type: "positive",
       variable: "lifestyle_vs_studio",
       delta: "β=+0.27, p=0.003",
+      category: "exploratory",
     },
     {
-      title: "Model fit is acceptable but room for improvement",
-      body: "R² = 0.52 means the model explains ~52% of CTR variance. Adjusted R² of 0.48 suggests no severe overfitting. Adding interaction terms and the proposed AI-suggested variables (skin_type_mentioned, before_after_visible) could push R² higher.",
+      title: "Model fit is acceptable, room to improve",
+      body: "R² = 0.52 means the model explains roughly 52% of CTR variance. Adjusted R² of 0.48 suggests no severe overfitting. Adding interaction terms and the AI-suggested variables (skin_type_mentioned, before_after_visible) could push R² higher.",
       type: "neutral",
       variable: "model_fit",
       delta: "R²=0.52",
+      category: "exploratory",
     },
     {
-      title: "Text density: less is more",
-      body: "text_density=heavy shows β = -0.22 (p = 0.008) on CTR while text_density=minimal shows β = +0.14 (p = 0.03). The relationship is monotonic — every step toward less text helps engagement.",
+      title: "Text density: less is more (directional)",
+      body: "text_density=heavy shows β = -0.22 (p = 0.008) on CTR while text_density=minimal shows β = +0.14 (p = 0.03). The relationship is monotonic on this dataset; every step toward less text correlates with better engagement.",
       type: "negative",
       variable: "text_density",
       delta: "heavy: β=-0.22",
+      category: "exploratory",
     },
     {
       title: "VIF is healthy",
@@ -671,42 +680,48 @@ export function generateDemoData(mode: DemoMode = "lite"): DemoDataSet {
       type: "neutral",
       variable: "model_diagnostics",
       delta: "VIF_max=2.8",
+      category: "exploratory",
     },
   ] : [
     {
-      title: "Human faces drive engagement",
-      body: "Creatives with visible human faces have consistently higher click-through rates. This pattern holds across all campaign themes and is strongest in the awareness funnel stage.",
+      title: "Human faces correlate with engagement",
+      body: "Creatives with visible human faces show consistently higher click-through rates on this dataset. The pattern holds across campaign themes and is most pronounced in awareness-stage ads. Treat as a directional signal worth confirming on more data.",
       type: "positive",
       variable: "face_visible",
       delta: "+12-18% CTR",
+      category: "hypothesis",
     },
     {
-      title: "Urgency cues boost conversions",
-      body: "Creatives featuring urgency language ('limited time', 'selling fast') show significantly lower cost-per-acquisition. Consider adding time-bound offers to more creatives.",
+      title: "Urgency cues align with lower CPA",
+      body: "Creatives featuring urgency language ('limited time', 'selling fast') show meaningfully lower cost-per-acquisition. Worth a deliberate test by adding time-bound offers to a tranche of new creatives.",
       type: "positive",
       variable: "urgency_cue",
       delta: "-20% CPA",
+      category: "hypothesis",
     },
     {
-      title: "Visual clutter hurts performance",
-      body: "Cluttered creatives underperform across every metric. Simplify compositions — the best performers have minimal or moderate visual complexity with a clear focal point.",
+      title: "Cluttered creatives underperform across metrics",
+      body: "Pattern observed: cluttered compositions trail across every metric on this sample. The strongest performers have minimal or moderate visual complexity with a clear focal point. Hypothesis-generating only — confirm with a structured test.",
       type: "negative",
       variable: "visual_clutter",
       delta: "-15% CTR when cluttered",
+      category: "exploratory",
     },
     {
-      title: "Warm colour palettes outperform cool",
-      body: "For this skincare brand, warm-toned creatives (golds, peach, soft pinks) outperform cool-toned ones (blues, silvers). This aligns with the brand identity and product packaging.",
+      title: "Warm palettes lead cool palettes",
+      body: "Directional signal: warm-toned creatives (golds, peach, soft pinks) outperform cool-toned ones (blues, silvers) on this skincare brand's data. Aligns with brand colour identity, but worth confirming on a larger sample before generalising.",
       type: "positive",
       variable: "colour_palette",
       delta: "+10% CTR for warm vs cool",
+      category: "exploratory",
     },
     {
-      title: "Lifestyle imagery beats studio shots",
-      body: "Products shown in real-life contexts (bathroom shelves, morning routines) perform better than plain studio product shots, especially for consideration and conversion-stage ads.",
+      title: "Lifestyle context out-clicks studio shots",
+      body: "Pattern observed: products shown in real-life contexts (bathroom shelves, morning routines) out-click plain studio shots on this sample, especially in consideration and conversion stages. Use as a starting point for a structured comparison.",
       type: "neutral",
       variable: "lifestyle_vs_studio",
       delta: "+14% CTR for lifestyle",
+      category: "exploratory",
     },
   ];
 

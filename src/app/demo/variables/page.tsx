@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDemo } from "@/context/demo-context";
 import DemoModeGuard from "@/components/demo-mode-guard";
 import { getDemoVariables } from "@/lib/demo-data";
 import AISuggestionCard from "@/components/variables/ai-suggestion-card";
 import CustomVariableForm, { type CustomVariable } from "@/components/variables/custom-variable-form";
+
+const ENABLED_VARS_KEY = "media-analyzer-enabled-vars";
+const HYPOTHESIS_VARS_KEY = "media-analyzer-hypothesis-vars";
+const MAX_HYPOTHESES = 5;
 
 function VariablesContent() {
   const { data, mode } = useDemo();
@@ -14,28 +18,139 @@ function VariablesContent() {
   const [enabled, setEnabled] = useState<Record<string, boolean>>(
     Object.fromEntries(demoVars.map((v) => [v.name, true]))
   );
+  const [hypotheses, setHypotheses] = useState<string[]>([]);
+
+  // Load saved enabled + hypothesis state on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const rawEnabled = window.localStorage.getItem(ENABLED_VARS_KEY);
+      if (rawEnabled) {
+        const parsed = JSON.parse(rawEnabled) as Record<string, boolean>;
+        setEnabled((prev) => ({ ...prev, ...parsed }));
+      }
+      const rawHyp = window.localStorage.getItem(HYPOTHESIS_VARS_KEY);
+      if (rawHyp) {
+        const parsed = JSON.parse(rawHyp) as string[];
+        if (Array.isArray(parsed)) setHypotheses(parsed.slice(0, MAX_HYPOTHESES));
+      }
+    } catch {
+      /* ignore parse errors */
+    }
+  }, []);
+
+  // Persist enabled state on change
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(ENABLED_VARS_KEY, JSON.stringify(enabled));
+    } catch {
+      /* ignore storage errors */
+    }
+  }, [enabled]);
+
+  // Persist hypothesis selection on change
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(HYPOTHESIS_VARS_KEY, JSON.stringify(hypotheses));
+    } catch {
+      /* ignore storage errors */
+    }
+  }, [hypotheses]);
 
   function toggle(name: string) {
     setEnabled((prev) => ({ ...prev, [name]: !prev[name] }));
   }
 
-  if (mode === "lite") {
-    return <LiteVariables vars={demoVars} enabled={enabled} toggle={toggle} />;
+  function toggleHypothesis(name: string) {
+    setHypotheses((prev) => {
+      if (prev.includes(name)) return prev.filter((n) => n !== name);
+      if (prev.length >= MAX_HYPOTHESES) return prev;
+      return [...prev, name];
+    });
   }
 
-  return <ProVariables vars={demoVars} enabled={enabled} toggle={toggle} aiSuggestions={data?.aiSuggestedVariables ?? []} />;
+  if (mode === "lite") {
+    return (
+      <LiteVariables
+        vars={demoVars}
+        enabled={enabled}
+        toggle={toggle}
+        hypotheses={hypotheses}
+        toggleHypothesis={toggleHypothesis}
+      />
+    );
+  }
+
+  return (
+    <ProVariables
+      vars={demoVars}
+      enabled={enabled}
+      toggle={toggle}
+      hypotheses={hypotheses}
+      toggleHypothesis={toggleHypothesis}
+      aiSuggestions={data?.aiSuggestedVariables ?? []}
+    />
+  );
+}
+
+function HypothesisToggle({
+  name,
+  isHypothesis,
+  atLimit,
+  onToggle,
+}: {
+  name: string;
+  isHypothesis: boolean;
+  atLimit: boolean;
+  onToggle: () => void;
+}) {
+  const disabled = !isHypothesis && atLimit;
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      disabled={disabled}
+      title={
+        isHypothesis
+          ? "This variable is flagged as a specific hypothesis"
+          : disabled
+            ? `Maximum ${MAX_HYPOTHESES} hypotheses reached`
+            : "Flag as a specific hypothesis you're testing"
+      }
+      className="badge mono"
+      style={{
+        fontSize: 10,
+        cursor: disabled ? "not-allowed" : "pointer",
+        opacity: disabled ? 0.4 : 1,
+        background: isHypothesis ? "rgba(193, 60, 62, 0.16)" : "transparent",
+        color: isHypothesis ? "var(--red)" : "var(--text-2)",
+        borderColor: isHypothesis ? "var(--red)" : "var(--border)",
+        justifySelf: "end",
+      }}
+      aria-label={`Toggle hypothesis flag for ${name}`}
+    >
+      {isHypothesis ? "★ hypothesis" : "+ hypothesis"}
+    </button>
+  );
 }
 
 function LiteVariables({
   vars,
   enabled,
   toggle,
+  hypotheses,
+  toggleHypothesis,
 }: {
   vars: ReturnType<typeof getDemoVariables>;
   enabled: Record<string, boolean>;
   toggle: (name: string) => void;
+  hypotheses: string[];
+  toggleHypothesis: (name: string) => void;
 }) {
   const enabledCount = Object.values(enabled).filter(Boolean).length;
+  const atLimit = hypotheses.length >= MAX_HYPOTHESES;
 
   return (
     <div className="page">
@@ -50,20 +165,59 @@ function LiteVariables({
 
       <div className="panel">
         <div className="between">
-          <h3 className="panel-title">Variable schema</h3>
-          <span className="badge badge-accent">{enabledCount} enabled</span>
+          <div>
+            <h3 className="panel-title">Variable schema</h3>
+            <p className="panel-sub" style={{ marginBottom: 0 }}>
+              Mark up to {MAX_HYPOTHESES} variables you have a specific
+              hypothesis about. Optional. Hypotheses appear in their own section
+              on the dashboard, separate from exploratory patterns.
+            </p>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <span className="badge mono" style={{ fontSize: 10 }}>
+              {hypotheses.length}/{MAX_HYPOTHESES} hypotheses
+            </span>
+            <span className="badge badge-accent">{enabledCount} enabled</span>
+          </div>
         </div>
-        <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden", marginTop: 12 }}>
+        <div
+          style={{
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius)",
+            overflow: "hidden",
+            marginTop: 12,
+          }}
+        >
           {vars.map((v) => (
-            <div className="var-row" key={v.name}>
-              <input type="checkbox" checked={enabled[v.name]} onChange={() => toggle(v.name)} />
-              <div><span className="var-name">{v.name}</span></div>
+            <div
+              className="var-row"
+              key={v.name}
+              style={{ gridTemplateColumns: "auto 1fr auto auto auto" }}
+            >
+              <input
+                type="checkbox"
+                checked={enabled[v.name]}
+                onChange={() => toggle(v.name)}
+              />
+              <div>
+                <span className="var-name">{v.name}</span>
+              </div>
               <span className="var-allowed">
-                {v.type === "boolean" ? "true / false" :
-                 v.type === "integer" ? "0, 1, 2, 3..." :
-                 v.values?.join(", ") ?? ""}
+                {v.type === "boolean"
+                  ? "true / false"
+                  : v.type === "integer"
+                    ? "0, 1, 2, 3..."
+                    : v.values?.join(", ") ?? ""}
               </span>
-              <span className="badge" style={{ fontSize: 10, justifySelf: "end" }}>{v.type}</span>
+              <span className="badge" style={{ fontSize: 10 }}>
+                {v.type}
+              </span>
+              <HypothesisToggle
+                name={v.name}
+                isHypothesis={hypotheses.includes(v.name)}
+                atLimit={atLimit}
+                onToggle={() => toggleHypothesis(v.name)}
+              />
             </div>
           ))}
         </div>
@@ -82,11 +236,15 @@ function ProVariables({
   vars,
   enabled,
   toggle,
+  hypotheses,
+  toggleHypothesis,
   aiSuggestions,
 }: {
   vars: ReturnType<typeof getDemoVariables>;
   enabled: Record<string, boolean>;
   toggle: (name: string) => void;
+  hypotheses: string[];
+  toggleHypothesis: (name: string) => void;
   aiSuggestions: import("@/lib/demo-data").AISuggestion[];
 }) {
   // Category vs universal split — vars after index 12 are roughly category
@@ -104,6 +262,7 @@ function ProVariables({
   const enabledCount = Object.values(enabled).filter(Boolean).length;
   const acceptedAICount = Object.values(aiStatus).filter((s) => s === "accepted").length;
   const totalActive = enabledCount + acceptedAICount + customVars.length;
+  const atLimit = hypotheses.length >= MAX_HYPOTHESES;
 
   return (
     <div className="page">
@@ -122,6 +281,27 @@ function ProVariables({
         <span className="muted" style={{ fontSize: 12 }}>
           {enabledCount} universal · {acceptedAICount} AI-accepted · {customVars.length} custom
         </span>
+        <span className="badge mono" style={{ fontSize: 10, marginLeft: 8 }}>
+          {hypotheses.length}/{MAX_HYPOTHESES} hypotheses marked
+        </span>
+      </div>
+
+      <div
+        className="panel"
+        style={{
+          background: "rgba(193, 60, 62, 0.06)",
+          borderColor: "rgba(193, 60, 62, 0.4)",
+        }}
+      >
+        <h3 className="panel-title" style={{ marginBottom: 4 }}>
+          Pre-register your hypotheses
+        </h3>
+        <p className="panel-sub" style={{ marginBottom: 0 }}>
+          Mark up to {MAX_HYPOTHESES} variables you have a specific hypothesis
+          about. Optional — leave empty if exploring. Pre-registered variables
+          appear in their own section on the dashboard; everything else goes
+          through Benjamini-Hochberg FDR correction.
+        </p>
       </div>
 
       {/* Tier 1: Universal */}
@@ -137,7 +317,11 @@ function ProVariables({
         </div>
         <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden", marginTop: 12 }}>
           {universalVars.map((v) => (
-            <div className="var-row" key={v.name}>
+            <div
+              className="var-row"
+              key={v.name}
+              style={{ gridTemplateColumns: "auto 1fr auto auto auto" }}
+            >
               <input type="checkbox" checked={enabled[v.name]} onChange={() => toggle(v.name)} />
               <div><span className="var-name">{v.name}</span></div>
               <span className="var-allowed">
@@ -145,7 +329,13 @@ function ProVariables({
                  v.type === "integer" ? "0, 1, 2..." :
                  v.values?.join(", ") ?? ""}
               </span>
-              <span className="badge" style={{ fontSize: 10, justifySelf: "end" }}>{v.type}</span>
+              <span className="badge" style={{ fontSize: 10 }}>{v.type}</span>
+              <HypothesisToggle
+                name={v.name}
+                isHypothesis={hypotheses.includes(v.name)}
+                atLimit={atLimit}
+                onToggle={() => toggleHypothesis(v.name)}
+              />
             </div>
           ))}
         </div>
@@ -165,7 +355,11 @@ function ProVariables({
         </div>
         <div style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", overflow: "hidden", marginTop: 12 }}>
           {categoryVars.map((v) => (
-            <div className="var-row" key={v.name}>
+            <div
+              className="var-row"
+              key={v.name}
+              style={{ gridTemplateColumns: "auto 1fr auto auto auto" }}
+            >
               <input type="checkbox" checked={enabled[v.name]} onChange={() => toggle(v.name)} />
               <div><span className="var-name">{v.name}</span></div>
               <span className="var-allowed">
@@ -173,7 +367,13 @@ function ProVariables({
                  v.type === "integer" ? "0, 1, 2..." :
                  v.values?.join(", ") ?? ""}
               </span>
-              <span className="badge" style={{ fontSize: 10, justifySelf: "end" }}>{v.type}</span>
+              <span className="badge" style={{ fontSize: 10 }}>{v.type}</span>
+              <HypothesisToggle
+                name={v.name}
+                isHypothesis={hypotheses.includes(v.name)}
+                atLimit={atLimit}
+                onToggle={() => toggleHypothesis(v.name)}
+              />
             </div>
           ))}
         </div>

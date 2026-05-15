@@ -308,7 +308,7 @@ export default function AnalysisPage() {
   return (
     <div className="page">
       <div className="page-head">
-        <p className="page-eyebrow">Step 07 of 09</p>
+        <p className="page-eyebrow">Step 06 of 08</p>
         <h1 className="page-title">Run AI extraction</h1>
         <p className="page-sub">
           For each mapped creative, the AI extracts every variable in your

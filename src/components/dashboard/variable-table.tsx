@@ -1,7 +1,11 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { MetricKey, VariablePerformance } from "@/lib/analytics";
+import {
+  noiseAdjustedRank,
+  type MetricKey,
+  type VariablePerformance,
+} from "@/lib/analytics";
 
 const METRIC_LABELS: Record<MetricKey, string> = {
   ctr: "CTR (%)",
@@ -27,13 +31,19 @@ const CONF_ORDER = { high: 3, medium: 2, low: 1, insufficient: 0 };
 export default function VariableTable({
   varPerf,
   metric,
+  hypothesisVariables = [],
 }: {
   varPerf: VariablePerformance[];
   metric: MetricKey;
+  hypothesisVariables?: string[];
 }) {
   const [sortKey, setSortKey] = useState<SortKey>("delta");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [filterVar, setFilterVar] = useState<string>("all");
+  const hypSet = useMemo(
+    () => new Set(hypothesisVariables),
+    [hypothesisVariables]
+  );
 
   // Get unique variable names for filter
   const variableNames = useMemo(() => {
@@ -41,25 +51,53 @@ export default function VariableTable({
     return Array.from(names).sort();
   }, [varPerf]);
 
-  // Filter + sort
+  // Filter + sort. Hypothesis rows always pinned to the top regardless of
+  // sort column. Default sort by "delta" uses noise-adjusted rank
+  // (|delta| × sqrt(n)) instead of raw absolute delta so small-N findings
+  // are penalised — the difference matters for exploratory rows that the
+  // user is using as hypothesis-generating signal.
   const displayed = useMemo(() => {
     let data = filterVar === "all" ? varPerf : varPerf.filter((v) => v.variable === filterVar);
 
-    data = [...data].sort((a, b) => {
+    function compare(a: VariablePerformance, b: VariablePerformance): number {
       let cmp = 0;
       switch (sortKey) {
         case "variable": cmp = a.variable.localeCompare(b.variable); break;
         case "value": cmp = a.value.localeCompare(b.value); break;
         case "count": cmp = a.count - b.count; break;
         case "avgMetric": cmp = a.avgMetric - b.avgMetric; break;
-        case "delta": cmp = Math.abs(a.delta) - Math.abs(b.delta); break;
-        case "confidence": cmp = CONF_ORDER[a.confidence] - CONF_ORDER[b.confidence]; break;
+        case "delta":
+          // Use noise-adjusted rank as the default delta sort
+          cmp = noiseAdjustedRank(a) - noiseAdjustedRank(b);
+          break;
+        case "confidence":
+          cmp = CONF_ORDER[a.confidence] - CONF_ORDER[b.confidence];
+          break;
       }
       return sortDir === "asc" ? cmp : -cmp;
-    });
+    }
 
-    return data;
-  }, [varPerf, filterVar, sortKey, sortDir]);
+    const hyp = [...data]
+      .filter((v) => hypSet.has(v.variable))
+      .sort(compare);
+    const exp = [...data]
+      .filter((v) => !hypSet.has(v.variable))
+      .sort(compare);
+
+    return [...hyp, ...exp];
+  }, [varPerf, filterVar, sortKey, sortDir, hypSet]);
+
+  const exploratoryCount = useMemo(
+    () =>
+      displayed.filter(
+        (v) => !hypSet.has(v.variable) && v.confidence !== "insufficient"
+      ).length,
+    [displayed, hypSet]
+  );
+  const hypothesisCount = useMemo(
+    () => displayed.filter((v) => hypSet.has(v.variable)).length,
+    [displayed, hypSet]
+  );
 
   function handleSort(key: SortKey) {
     if (sortKey === key) {
@@ -81,7 +119,20 @@ export default function VariableTable({
         <div>
           <h3 className="panel-title">Variable performance table</h3>
           <p className="panel-sub" style={{ marginBottom: 0 }}>
-            Click any column header to sort. Rows with n &lt; 3 show insufficient data.
+            {hypothesisCount > 0 ? (
+              <>
+                Pre-registered hypotheses pinned to the top.{" "}
+                <strong>{exploratoryCount}</strong> exploratory rows below —
+                hypothesis-generating only, not corrected for multiple
+                comparisons. Default sort is noise-adjusted (|delta| × √n).
+              </>
+            ) : (
+              <>
+                Exploratory rows — hypothesis-generating only, not corrected
+                for multiple comparisons. Default sort is noise-adjusted
+                (|delta| × √n). Click any column header to re-sort.
+              </>
+            )}
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -132,9 +183,28 @@ export default function VariableTable({
                 </td>
               </tr>
             ) : (
-              displayed.slice(0, 80).map((vp, i) => (
-                <tr key={`${vp.variable}-${vp.value}-${i}`}>
-                  <td className="mono" style={{ fontSize: 12 }}>{vp.variable}</td>
+              displayed.slice(0, 80).map((vp, i) => {
+                const isHyp = hypSet.has(vp.variable);
+                return (
+                <tr
+                  key={`${vp.variable}-${vp.value}-${i}`}
+                  style={isHyp ? { background: "rgba(193, 60, 62, 0.05)" } : undefined}
+                >
+                  <td className="mono" style={{ fontSize: 12 }}>
+                    {isHyp && (
+                      <span
+                        style={{
+                          color: "var(--red)",
+                          marginRight: 4,
+                          fontWeight: 700,
+                        }}
+                        title="Pre-registered hypothesis"
+                      >
+                        ★
+                      </span>
+                    )}
+                    {vp.variable}
+                  </td>
                   <td style={{ fontSize: 12 }}>{vp.value}</td>
                   <td className="mono" style={{ fontSize: 12 }}>{vp.count}</td>
                   <td className="mono" style={{ fontSize: 12 }}>
@@ -154,7 +224,25 @@ export default function VariableTable({
                               : "var(--text-2)",
                     }}
                   >
-                    {vp.confidence === "insufficient" ? "—" : `${vp.delta > 0 ? "+" : ""}${vp.delta.toFixed(1)}%`}
+                    {vp.confidence === "insufficient" ? (
+                      "—"
+                    ) : (
+                      <>
+                        <span>{vp.delta > 0 ? "+" : ""}{vp.delta.toFixed(1)}%</span>
+                        <span
+                          className="mono"
+                          style={{
+                            display: "block",
+                            fontSize: 10,
+                            fontWeight: 400,
+                            color: "var(--text-3)",
+                            marginTop: 2,
+                          }}
+                        >
+                          [{vp.delta95Lower > 0 ? "+" : ""}{vp.delta95Lower.toFixed(1)}%, {vp.delta95Upper > 0 ? "+" : ""}{vp.delta95Upper.toFixed(1)}%]
+                        </span>
+                      </>
+                    )}
                   </td>
                   <td>
                     <span
@@ -172,7 +260,8 @@ export default function VariableTable({
                     </span>
                   </td>
                 </tr>
-              ))
+                );
+              })
             )}
           </tbody>
         </table>

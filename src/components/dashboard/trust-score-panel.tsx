@@ -1,6 +1,6 @@
 "use client";
 
-import type { TrustScore } from "@/lib/analytics";
+import type { ModelStability, TrustScore } from "@/lib/analytics";
 
 function trustColor(score: number): string {
   if (score >= 80) return "var(--green)";
@@ -8,6 +8,15 @@ function trustColor(score: number): string {
   if (score >= 40) return "var(--amber)";
   return "var(--red)";
 }
+
+function stabilityColor(s: ModelStability): string {
+  if (s === "green") return "var(--green)";
+  if (s === "yellow") return "var(--amber)";
+  return "var(--red)";
+}
+
+const STABILITY_TOOLTIP =
+  "Statistical reliability of the regression depends on observations per predictor. Green: 10+ observations per predictor. Yellow: 5-10 (regularization recommended). Red: under 5 (results not reliable).";
 
 const SUB_SCORES: { key: keyof TrustScore; label: string }[] = [
   { key: "creativeCount", label: "Creative count" },
@@ -18,26 +27,67 @@ const SUB_SCORES: { key: keyof TrustScore; label: string }[] = [
   { key: "bucketBalance", label: "Bucket balance" },
 ];
 
+export type ModelStabilityInfo = {
+  color: ModelStability;
+  ratio: number;
+  predictorCount: number;
+  creativeCount: number;
+};
+
 export default function TrustScorePanel({
   trustScore,
+  modelStability,
 }: {
   trustScore: TrustScore;
+  modelStability?: ModelStabilityInfo;
 }) {
   return (
     <div className="panel">
       <div className="between">
         <div>
-          <h3 className="panel-title">Dataset trust score</h3>
+          <h3
+            className="panel-title"
+            title="Trust score is gated by mapping quality, data completeness, and creative count. If any of these is low, the overall score reflects that. Other factors (volume, extraction confidence, bucket balance) contribute proportionally."
+          >
+            Dataset trust score
+          </h3>
           <p className="panel-sub" style={{ marginBottom: 0 }}>
-            Composite quality indicator — read before interpreting results.
+            Gated by mapping quality, data completeness, and creative count.
+            Lowest of those three caps the overall.
           </p>
         </div>
-        <span
-          className="badge"
-          style={{ color: trustColor(trustScore.overall) }}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            flexShrink: 0,
+          }}
         >
-          {trustScore.level}
-        </span>
+          {modelStability && (
+            <span
+              className="badge mono"
+              title={STABILITY_TOOLTIP}
+              style={{
+                color: stabilityColor(modelStability.color),
+                borderColor: stabilityColor(modelStability.color),
+                fontSize: 10,
+                whiteSpace: "nowrap",
+              }}
+            >
+              Stability {modelStability.ratio.toFixed(1)}:1
+            </span>
+          )}
+          <span
+            className="badge"
+            style={{
+              color: trustColor(trustScore.overall),
+              whiteSpace: "nowrap",
+            }}
+          >
+            {trustScore.level}
+          </span>
+        </div>
       </div>
       <div className="trust-card mt-3">
         <div style={{ display: "flex", justifyContent: "center" }}>
