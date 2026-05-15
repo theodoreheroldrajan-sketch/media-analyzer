@@ -2,10 +2,11 @@
 
 import {
   createContext,
-  useContext,
-  useState,
-  useEffect,
   useCallback,
+  useContext,
+  useEffect,
+  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { getSupabase } from "@/lib/supabase";
@@ -28,22 +29,53 @@ const ProjectContext = createContext<ProjectContextValue | null>(null);
 
 const STORAGE_KEY = "media-analyser-project-id";
 
+// External-store subscription for the localStorage-backed projectId.
+// Mirrors the pattern used in demo-context.tsx: useSyncExternalStore on
+// the read, explicit notify() on the write so the same tab updates too.
+const projectIdListeners = new Set<() => void>();
+
+function subscribeToProjectId(callback: () => void): () => void {
+  if (typeof window === "undefined") return () => {};
+  projectIdListeners.add(callback);
+  const onStorage = (e: StorageEvent) => {
+    if (e.key === STORAGE_KEY || e.key === null) callback();
+  };
+  window.addEventListener("storage", onStorage);
+  return () => {
+    projectIdListeners.delete(callback);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function notifyProjectIdChanged() {
+  projectIdListeners.forEach((cb) => cb());
+}
+
+function getStoredProjectId(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem(STORAGE_KEY);
+}
+
+function getServerProjectId(): string | null {
+  return null;
+}
+
 export function ProjectProvider({ children }: { children: ReactNode }) {
+  // projectId comes from localStorage via useSyncExternalStore — no
+  // setState-in-effect cascade. Demo-context uses the same pattern.
+  const projectId = useSyncExternalStore(
+    subscribeToProjectId,
+    getStoredProjectId,
+    getServerProjectId
+  );
+
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
-  const [projectId, setProjectIdState] = useState<string | null>(null);
 
-  // Load project ID from localStorage on mount
-  useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      setProjectIdState(stored);
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  // Fetch project when ID changes
+  // Fetch project when ID changes. This is a genuine async I/O effect:
+  // setState happens inside the awaited Supabase callback, not synchronously
+  // in the effect body. The React 19 lint rule is over-eager on this
+  // pattern, so we suppress it here with rationale.
   const fetchProject = useCallback(async (id: string) => {
     setLoading(true);
     const { data, error } = await getSupabase()
@@ -54,9 +86,11 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
     if (error || !data) {
       // Project not found — clear stored ID
-      localStorage.removeItem(STORAGE_KEY);
+      if (typeof window !== "undefined") {
+        window.localStorage.removeItem(STORAGE_KEY);
+        notifyProjectIdChanged();
+      }
       setProject(null);
-      setProjectIdState(null);
     } else {
       setProject(data);
     }
@@ -65,13 +99,17 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (projectId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- async Supabase fetch; setState happens inside the awaited callback, not synchronously in the effect body
       fetchProject(projectId);
+    } else {
+      setLoading(false);
     }
   }, [projectId, fetchProject]);
 
   const setProjectId = useCallback((id: string) => {
-    localStorage.setItem(STORAGE_KEY, id);
-    setProjectIdState(id);
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(STORAGE_KEY, id);
+    notifyProjectIdChanged();
   }, []);
 
   const refresh = useCallback(async () => {
@@ -81,9 +119,10 @@ export function ProjectProvider({ children }: { children: ReactNode }) {
   }, [projectId, fetchProject]);
 
   const clear = useCallback(() => {
-    localStorage.removeItem(STORAGE_KEY);
+    if (typeof window === "undefined") return;
+    window.localStorage.removeItem(STORAGE_KEY);
+    notifyProjectIdChanged();
     setProject(null);
-    setProjectIdState(null);
   }, []);
 
   return (

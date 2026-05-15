@@ -26,7 +26,11 @@ export default function VariableChart({
 }) {
   const [animate, setAnimate] = useState(false);
 
+  // Animation trigger: flip to false then to true on next frame to restart
+  // the CSS transition when data/metric changes. setState-in-effect is the
+  // correct pattern for this animation cascade.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional animation reset; setAnimate(false) immediately, then setAnimate(true) on the next frame to restart the CSS transition
     setAnimate(false);
     const t = requestAnimationFrame(() => setAnimate(true));
     return () => cancelAnimationFrame(t);

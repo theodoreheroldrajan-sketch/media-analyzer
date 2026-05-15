@@ -63,12 +63,16 @@ export default function VariablesPage() {
   }, [project]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async API fetch via loadSchema; setState happens inside the awaited callback, not synchronously in this body
     loadSchema();
   }, [loadSchema]);
 
-  // Load hypothesis selection from the project row when project arrives
+  // Load hypothesis selection from the project row when project arrives.
+  // Project loads async from project-context Supabase fetch, so a lazy
+  // useState init can't see it on first render.
   useEffect(() => {
     if (project?.pre_registered_variables) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate one-time pre-fill from async-loaded project context
       setHypotheses(
         Array.isArray(project.pre_registered_variables)
           ? project.pre_registered_variables.slice(0, MAX_HYPOTHESES)

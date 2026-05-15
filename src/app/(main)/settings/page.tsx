@@ -47,6 +47,7 @@ export default function SettingsPage() {
   }, [project]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async API fetch via loadSettings; setState happens inside the awaited callback
     loadSettings();
   }, [loadSettings]);
 

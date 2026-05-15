@@ -153,10 +153,11 @@ export default function AnalysisPage() {
   }, [project]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async Supabase + API fetch via loadPreflight; setState happens inside the awaited callback
     loadPreflight();
   }, [loadPreflight]);
 
-  // Auto-scroll log
+  // Auto-scroll log — imperative DOM work; no setState
   useEffect(() => {
     if (logRef.current) {
       logRef.current.scrollTop = logRef.current.scrollHeight;
