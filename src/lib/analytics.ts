@@ -327,15 +327,14 @@ export function computeTrustScore(
       ? ((totalBuckets - insufficientBuckets) / totalBuckets) * 100
       : 50;
 
-  // Weighted average
-  const overall = Math.round(
-    creativeCount * 0.2 +
-      volumeScore * 0.15 +
-      mappingQuality * 0.2 +
-      dataCompleteness * 0.15 +
-      extractionConfidence * 0.15 +
-      bucketBalance * 0.15
-  );
+  // Floor-gated composite. Creative count, mapping quality, and data
+  // completeness are floor conditions — the lowest of the three caps the
+  // overall score. Volume, extraction confidence, and bucket balance
+  // contribute proportionally on top of that floor.
+  const floorScore = Math.min(creativeCount, mappingQuality, dataCompleteness);
+  const upperScore =
+    volumeScore * 0.4 + extractionConfidence * 0.3 + bucketBalance * 0.3;
+  const overall = Math.round(floorScore * (upperScore / 100));
 
   const level: TrustScore["level"] =
     overall >= 80

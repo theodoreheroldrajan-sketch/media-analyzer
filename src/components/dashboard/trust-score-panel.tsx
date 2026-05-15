@@ -45,9 +45,15 @@ export default function TrustScorePanel({
     <div className="panel">
       <div className="between">
         <div>
-          <h3 className="panel-title">Dataset trust score</h3>
+          <h3
+            className="panel-title"
+            title="Trust score is gated by mapping quality, data completeness, and creative count. If any of these is low, the overall score reflects that. Other factors (volume, extraction confidence, bucket balance) contribute proportionally."
+          >
+            Dataset trust score
+          </h3>
           <p className="panel-sub" style={{ marginBottom: 0 }}>
-            Composite quality indicator — read before interpreting results.
+            Gated by mapping quality, data completeness, and creative count.
+            Lowest of those three caps the overall.
           </p>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
