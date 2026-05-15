@@ -128,7 +128,11 @@ function DashboardContent() {
         />
       )}
 
-      <VariableTable varPerf={payload.variablePerformance} metric={metric} />
+      <VariableTable
+        varPerf={payload.variablePerformance}
+        metric={metric}
+        hypothesisVariables={hypothesisVars}
+      />
 
       <CreativeGallery
         gallery={payload.gallery}
