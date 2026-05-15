@@ -59,7 +59,7 @@ Items that landed since the roadmap v1 was written, in rough chronological order
 - "Showing snapshot N of M" indicator on dashboard
 - Trust score formula updated in methodology paper and `ANALYSIS_METHODOLOGY.md` to match shipped code
 - LIMITATIONS.md expanded with audit-surfaced operational gaps
-- Confidence column investigation documented in `INVESTIGATION_CONFIDENCE.md`
+- Confidence column investigation documented in `POST_AUDIT_COMPLETION.md` (appendix); column subsequently dropped in PR #16
 
 **Audit cycle 1 (feature/correctness).** Two reviews — external (chat-based, documentation-only) and internal (Claude Code, code-grounded). Findings consolidated in `AUDIT_FINDINGS.md` and addressed via `POST_AUDIT_INSTRUCTIONS.md`.
 
@@ -185,7 +185,7 @@ For specific topics, the source-of-truth document is:
 - **How fixes were specified** → `REVIEW_FIXES.md`
 - **Findings from feature audit** → `AUDIT_FINDINGS.md`
 - **Post-audit work performed** → `POST_AUDIT_COMPLETION.md`
-- **Confidence column investigation** → `INVESTIGATION_CONFIDENCE.md`
+- **Confidence column investigation** → `POST_AUDIT_COMPLETION.md` (appendix)
 - **Findings from code hygiene audit** → `CODE_HYGIENE_FINDINGS_YYYY-MM-DD.md` (latest dated file)
 - **How to run audits** → `AUDIT_INSTRUCTIONS.md`, `CODE_HYGIENE_AUDIT.md`
 - **Original build journey** → roadmap.pdf v1 + section 4 above
@@ -215,4 +215,4 @@ Items the team should resolve when ready:
 - Whether the Pro/Lite split should be carried over to a future subscription model and what naming/pricing would look like.
 - Whether to commit the Betterhalf engagement as the explicit gating event for production OLS, or leave it open.
 - Whether the `legacy/` folder (Streamlit prototype) should be removed before the next public-facing iteration or retained as build-journey context.
-- Whether `INVESTIGATION_CONFIDENCE.md` should be merged into `POST_AUDIT_COMPLETION.md` now that the confidence column has been dropped, or kept as a standalone artifact.
+<!-- Resolved 2026-05-16: INVESTIGATION_CONFIDENCE.md merged into POST_AUDIT_COMPLETION.md as an appendix. The standalone file has been removed. -->

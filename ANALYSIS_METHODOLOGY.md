@@ -133,7 +133,7 @@ trust_score = round(floor_score x (upper_score / 100))
 
 All five sub-scores remain visible in the trust panel UI regardless of the composite. The floor-gating only affects the headline number.
 
-**Removed sub-score (extraction_confidence):** an earlier revision had a sixth sub-score derived from `extraction_results.confidence`. The Anthropic tool_use API does not return a self-confidence score, so that column was never populated and the sub-score was effectively a constant 80. The column and the sub-score were both removed on 2026-05-15. See `INVESTIGATION_CONFIDENCE.md` for the investigation that led to the change.
+**Removed sub-score (extraction_confidence):** an earlier revision had a sixth sub-score derived from `extraction_results.confidence`. The Anthropic tool_use API does not return a self-confidence score, so that column was never populated and the sub-score was effectively a constant 80. The column and the sub-score were both removed on 2026-05-15. See the appendix in `POST_AUDIT_COMPLETION.md` for the investigation that led to the change.
 
 ### 5.3 Trust levels
 
