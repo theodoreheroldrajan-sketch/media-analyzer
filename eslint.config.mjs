@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Project-specific ignores:
+    "claude-design/**", // Archival design-export drop; not part of the build (gitignored too)
+    "legacy/**", // Streamlit prototype; archival
   ]),
 ]);
 

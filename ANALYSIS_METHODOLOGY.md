@@ -110,32 +110,30 @@ This is a **descriptive analysis** — it reports observed differences but does 
 
 The dashboard displays a "Dataset Trust Score" (0–100) as a composite quality indicator. It is not a statistical measure — it is a heuristic to help the user understand how much they should trust the results.
 
-### 5.1 Sub-scores and weights
+### 5.1 Sub-scores
 
-| Sub-score | Weight | Formula | Interpretation |
-|-----------|--------|---------|----------------|
-| Creative count | 0.20 | `min(100, (n_creatives / 50) x 100)` | Linear scale: 50 creatives = perfect score |
-| Impression volume | 0.15 | `min(100, (log10(total_impressions) / 6) x 100)` | Log scale: 1M impressions = perfect score |
-| Mapping quality | 0.20 | `(confirmed_mappings / total_creatives) x 100` | % of creatives successfully linked to performance data |
-| Data completeness | 0.15 | `(creatives_with_impressions_and_spend / total_creatives) x 100` | % of creatives with non-zero core metrics |
-| Extraction confidence | 0.15 | `avg_extraction_confidence x 100` | Average AI confidence across all extractions (0–1 scale) |
-| Bucket balance | 0.15 | `((total_groups - groups_with_n_lt_3) / total_groups) x 100` | % of variable-value groups with sufficient sample size |
+| Sub-score | Formula | Interpretation |
+|-----------|---------|----------------|
+| Creative count | `min(100, (n_creatives / 50) x 100)` | Linear scale: 50 creatives = perfect score |
+| Impression volume | `min(100, (log10(total_impressions) / 6) x 100)` | Log scale: 1M impressions = perfect score |
+| Mapping quality | `(confirmed_mappings / total_creatives) x 100` | % of creatives successfully linked to performance data |
+| Data completeness | `(creatives_with_impressions_and_spend / total_creatives) x 100` | % of creatives with non-zero core metrics |
+| Bucket balance | `((total_groups - groups_with_n_lt_3) / total_groups) x 100` | % of variable-value groups with sufficient sample size |
 
 ### 5.2 Overall score
 
-**v2 update (2026-05-15):** the composite was previously a weighted average of all six sub-scores. It is now floor-gated. The first three sub-scores (creative count, mapping quality, data completeness) are floor conditions — the composite cannot exceed the worst of them. The remaining three (volume, extraction confidence, bucket balance) contribute proportionally on top of that floor. A dataset with mapping quality of 40 cannot score above 40 regardless of how strong the other components look — which closes the previous failure mode where a low mapping rate could be averaged away to "Good."
+**v2 update (2026-05-15, revised):** the composite was previously a weighted average of all six sub-scores. It is now floor-gated and uses five sub-scores. The first three sub-scores (creative count, mapping quality, data completeness) are floor conditions — the composite cannot exceed the worst of them. The remaining two (volume, bucket balance) contribute proportionally on top of that floor. A dataset with mapping quality of 40 cannot score above 40 regardless of how strong the other components look — which closes the previous failure mode where a low mapping rate could be averaged away to "Good."
 
 ```
 floor_score = min(creative_count, mapping_quality, data_completeness)
-upper_score = volume_score x 0.4
-            + extraction_confidence x 0.3
-            + bucket_balance x 0.3
+upper_score = volume_score x 0.5
+            + bucket_balance x 0.5
 trust_score = round(floor_score x (upper_score / 100))
 ```
 
-All six sub-scores remain visible in the trust panel UI regardless of the composite. The floor-gating only affects the headline number.
+All five sub-scores remain visible in the trust panel UI regardless of the composite. The floor-gating only affects the headline number.
 
-**Note on `extraction_confidence`:** the extraction_results.confidence column is present in schema but never populated (the Anthropic tool_use API does not return a self-confidence score). Every extraction reads the fallback value `0.8`, so the `extraction_confidence` sub-score is effectively a constant 80 in production. See `INVESTIGATION_CONFIDENCE.md` for details and the recommended follow-up.
+**Removed sub-score (extraction_confidence):** an earlier revision had a sixth sub-score derived from `extraction_results.confidence`. The Anthropic tool_use API does not return a self-confidence score, so that column was never populated and the sub-score was effectively a constant 80. The column and the sub-score were both removed on 2026-05-15. See `INVESTIGATION_CONFIDENCE.md` for the investigation that led to the change.
 
 ### 5.3 Trust levels
 

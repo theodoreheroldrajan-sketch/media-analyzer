@@ -79,7 +79,10 @@ function buildExtractionTool(variables: VariableDefinition[]): Anthropic.Tool {
  * Get a public URL for a creative image from Supabase Storage.
  */
 function getImageUrl(storagePath: string): string {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) {
+    throw new Error("Missing NEXT_PUBLIC_SUPABASE_URL environment variable");
+  }
   return `${supabaseUrl}/storage/v1/object/public/creatives/${storagePath}`;
 }
 
