@@ -85,7 +85,7 @@ export default function DashboardPage() {
   return (
     <div className="page" style={{ maxWidth: "none" }}>
       <div className="page-head">
-        <p className="page-eyebrow">Step 08 of 09</p>
+        <p className="page-eyebrow">Step 07 of 08</p>
         <h1 className="page-title">Dashboard</h1>
         <p className="page-sub">
           Dataset health, top-line metrics, and which variables correlate with

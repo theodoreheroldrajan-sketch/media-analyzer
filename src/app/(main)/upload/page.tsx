@@ -186,7 +186,7 @@ export default function UploadPage() {
   return (
     <div className="page">
       <div className="page-head">
-        <p className="page-eyebrow">Step 04 of 09</p>
+        <p className="page-eyebrow">Step 03 of 08</p>
         <h1 className="page-title">
           Upload your creatives and performance data
         </h1>

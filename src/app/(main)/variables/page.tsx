@@ -283,7 +283,7 @@ export default function VariablesPage() {
   return (
     <div className="page">
       <div className="page-head">
-        <p className="page-eyebrow">Step 06 of 09</p>
+        <p className="page-eyebrow">Step 05 of 08</p>
         <h1 className="page-title">Approve the variable schema</h1>
         <p className="page-sub">
           These are the variables the AI will extract from each creative. Keep

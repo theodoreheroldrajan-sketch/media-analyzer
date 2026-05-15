@@ -79,7 +79,7 @@ Confidence is assigned based purely on sample size (number of creatives in the g
 
 | Sample size (n) | Confidence label | Interpretation |
 |-----------------|-----------------|----------------|
-| n < 3 | Insufficient | Results hidden — too few data points |
+| n < 3 | Insufficient | Excluded from charts; shown with placeholder values ("—") in the variable performance table for transparency |
 | n = 3–4 | Low | Treat as hypothesis only |
 | n = 5–9 | Medium | Directionally useful |
 | n >= 10 | High | More reliable for decision-making |

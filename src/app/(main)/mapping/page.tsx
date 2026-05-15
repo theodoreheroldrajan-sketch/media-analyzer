@@ -292,7 +292,7 @@ export default function MappingPage() {
   return (
     <div className="page">
       <div className="page-head">
-        <p className="page-eyebrow">Step 05 of 09</p>
+        <p className="page-eyebrow">Step 04 of 08</p>
         <h1 className="page-title">
           Review creative ↔ performance mapping
         </h1>

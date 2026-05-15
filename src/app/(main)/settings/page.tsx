@@ -139,7 +139,7 @@ export default function SettingsPage() {
   return (
     <div className="page">
       <div className="page-head">
-        <p className="page-eyebrow">Step 09 of 09</p>
+        <p className="page-eyebrow">Step 08 of 08</p>
         <h1 className="page-title">Project settings</h1>
         <p className="page-sub">
           Manage brand context, export data, see API usage, or delete this
