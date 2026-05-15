@@ -1,6 +1,6 @@
 "use client";
 
-import type { TrustScore } from "@/lib/analytics";
+import type { ModelStability, TrustScore } from "@/lib/analytics";
 
 function trustColor(score: number): string {
   if (score >= 80) return "var(--green)";
@@ -8,6 +8,15 @@ function trustColor(score: number): string {
   if (score >= 40) return "var(--amber)";
   return "var(--red)";
 }
+
+function stabilityColor(s: ModelStability): string {
+  if (s === "green") return "var(--green)";
+  if (s === "yellow") return "var(--amber)";
+  return "var(--red)";
+}
+
+const STABILITY_TOOLTIP =
+  "Statistical reliability of the regression depends on observations per predictor. Green: 10+ observations per predictor. Yellow: 5-10 (regularization recommended). Red: under 5 (results not reliable).";
 
 const SUB_SCORES: { key: keyof TrustScore; label: string }[] = [
   { key: "creativeCount", label: "Creative count" },
@@ -18,10 +27,19 @@ const SUB_SCORES: { key: keyof TrustScore; label: string }[] = [
   { key: "bucketBalance", label: "Bucket balance" },
 ];
 
+export type ModelStabilityInfo = {
+  color: ModelStability;
+  ratio: number;
+  predictorCount: number;
+  creativeCount: number;
+};
+
 export default function TrustScorePanel({
   trustScore,
+  modelStability,
 }: {
   trustScore: TrustScore;
+  modelStability?: ModelStabilityInfo;
 }) {
   return (
     <div className="panel">
@@ -32,12 +50,28 @@ export default function TrustScorePanel({
             Composite quality indicator — read before interpreting results.
           </p>
         </div>
-        <span
-          className="badge"
-          style={{ color: trustColor(trustScore.overall) }}
-        >
-          {trustScore.level}
-        </span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {modelStability && (
+            <span
+              className="badge mono"
+              title={STABILITY_TOOLTIP}
+              style={{
+                color: stabilityColor(modelStability.color),
+                borderColor: stabilityColor(modelStability.color),
+                fontSize: 10,
+              }}
+            >
+              Model stability: {modelStability.color} ·{" "}
+              {modelStability.ratio.toFixed(1)}:1
+            </span>
+          )}
+          <span
+            className="badge"
+            style={{ color: trustColor(trustScore.overall) }}
+          >
+            {trustScore.level}
+          </span>
+        </div>
       </div>
       <div className="trust-card mt-3">
         <div style={{ display: "flex", justifyContent: "center" }}>

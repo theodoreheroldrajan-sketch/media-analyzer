@@ -1,14 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDemo } from "@/context/demo-context";
 import DemoModeGuard from "@/components/demo-mode-guard";
-import type { MetricKey } from "@/lib/analytics";
+import {
+  computeModelStability,
+  countPredictors,
+  type MetricKey,
+} from "@/lib/analytics";
+import { getDemoVariables } from "@/lib/demo-data";
 
 import MetricSwitcher from "@/components/dashboard/metric-switcher";
 import SummaryHeader from "@/components/dashboard/summary-header";
-import TrustScorePanel from "@/components/dashboard/trust-score-panel";
+import TrustScorePanel, {
+  type ModelStabilityInfo,
+} from "@/components/dashboard/trust-score-panel";
 import KeyMetricsPanel from "@/components/dashboard/key-metrics-panel";
 import VariableExplorer from "@/components/dashboard/variable-explorer";
 import VariableTable from "@/components/dashboard/variable-table";
@@ -17,9 +24,43 @@ import InsightsPanel from "@/components/dashboard/insights-panel";
 import RegressionTable from "@/components/dashboard/regression-table";
 import InteractionMatrix from "@/components/dashboard/interaction-matrix";
 
+const ENABLED_VARS_KEY = "media-analyzer-enabled-vars";
+
 function DashboardContent() {
   const { data, mode } = useDemo();
   const [metric, setMetric] = useState<MetricKey>("ctr");
+  const [enabledVars, setEnabledVars] = useState<Record<string, boolean> | null>(
+    null
+  );
+
+  // Read enabled-vars selection from the /variables page
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(ENABLED_VARS_KEY);
+      if (raw) setEnabledVars(JSON.parse(raw));
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  // Compute model stability (Pro only) from enabled predictors
+  const modelStability = useMemo<ModelStabilityInfo | undefined>(() => {
+    if (mode !== "pro" || !data) return undefined;
+    const demoVars = getDemoVariables();
+    const active = enabledVars
+      ? demoVars.filter((v) => enabledVars[v.name] !== false)
+      : demoVars;
+    const predictorCount = countPredictors(active);
+    const creativeCount = data.creativeData.length;
+    const ratio = predictorCount > 0 ? creativeCount / predictorCount : 0;
+    return {
+      color: computeModelStability(creativeCount, predictorCount),
+      ratio,
+      predictorCount,
+      creativeCount,
+    };
+  }, [mode, data, enabledVars]);
 
   if (!data) return null;
   const isPro = mode === "pro";
@@ -49,7 +90,10 @@ function DashboardContent() {
       />
 
       <div className="dashboard-trust-metrics mb-2">
-        <TrustScorePanel trustScore={payload.trustScore} />
+        <TrustScorePanel
+          trustScore={payload.trustScore}
+          modelStability={modelStability}
+        />
         <KeyMetricsPanel keyMetrics={payload.keyMetrics} metric={metric} />
       </div>
 

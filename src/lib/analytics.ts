@@ -47,6 +47,44 @@ export type KeyMetrics = {
   avgROAS: number;
 };
 
+export type ModelStability = "green" | "yellow" | "red";
+
+/**
+ * Compute model-stability colour based on observations per predictor.
+ * Green: 10+ obs/predictor. Yellow: 5-10. Red: under 5.
+ * Independent of the Pro unlock threshold (still 100 creatives).
+ */
+export function computeModelStability(
+  creativeCount: number,
+  predictorCount: number
+): ModelStability {
+  if (predictorCount <= 0) return "red";
+  const ratio = creativeCount / predictorCount;
+  if (ratio >= 10) return "green";
+  if (ratio >= 5) return "yellow";
+  return "red";
+}
+
+/**
+ * Count predictors from a list of enabled variable definitions.
+ * - boolean: 1 predictor
+ * - enum: (levels - 1) predictors (drop reference category for one-hot)
+ * - integer: 1 predictor
+ * - string: excluded (not modelled)
+ */
+export function countPredictors(
+  vars: { type: "boolean" | "enum" | "integer" | "string"; values?: string[] }[]
+): number {
+  let count = 0;
+  for (const v of vars) {
+    if (v.type === "boolean") count += 1;
+    else if (v.type === "integer") count += 1;
+    else if (v.type === "enum") count += Math.max(0, (v.values?.length ?? 0) - 1);
+    // string: skip
+  }
+  return count;
+}
+
 export type TrustScore = {
   overall: number;
   creativeCount: number;

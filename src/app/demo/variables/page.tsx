@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDemo } from "@/context/demo-context";
 import DemoModeGuard from "@/components/demo-mode-guard";
 import { getDemoVariables } from "@/lib/demo-data";
 import AISuggestionCard from "@/components/variables/ai-suggestion-card";
 import CustomVariableForm, { type CustomVariable } from "@/components/variables/custom-variable-form";
+
+const ENABLED_VARS_KEY = "media-analyzer-enabled-vars";
 
 function VariablesContent() {
   const { data, mode } = useDemo();
@@ -14,6 +16,31 @@ function VariablesContent() {
   const [enabled, setEnabled] = useState<Record<string, boolean>>(
     Object.fromEntries(demoVars.map((v) => [v.name, true]))
   );
+
+  // Load saved enabled state on mount
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(ENABLED_VARS_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Record<string, boolean>;
+        // Merge with defaults so newly-added vars default to enabled
+        setEnabled((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch {
+      /* ignore parse errors */
+    }
+  }, []);
+
+  // Persist enabled state on change
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      window.localStorage.setItem(ENABLED_VARS_KEY, JSON.stringify(enabled));
+    } catch {
+      /* ignore storage errors */
+    }
+  }, [enabled]);
 
   function toggle(name: string) {
     setEnabled((prev) => ({ ...prev, [name]: !prev[name] }));
