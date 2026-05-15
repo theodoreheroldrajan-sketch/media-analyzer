@@ -35,9 +35,13 @@ export default function SetupPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Pre-fill form if project already exists
+  // Pre-fill form if project already exists. The project arrives asynchronously
+  // from the project-context's Supabase fetch, so derived defaults via lazy
+  // useState init can't see it on first render. This effect pre-fills the form
+  // once the project lands. setState-in-effect is the correct pattern here.
   useEffect(() => {
     if (project) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- legitimate one-time pre-fill from async-loaded project context; cannot run during render because project loads in a separate Supabase round-trip
       setName(project.name);
       setBrandName(project.brand_name);
       setBrandCategory(project.brand_category);

@@ -79,6 +79,7 @@ export default function DashboardPage() {
   );
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async API fetch via loadDashboard; setState happens inside the awaited callback
     loadDashboard(metric);
   }, [loadDashboard, metric]);
 

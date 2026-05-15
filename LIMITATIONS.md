@@ -41,6 +41,15 @@ Every dashboard output is correlational. The tool generates informed hypotheses 
 
 ## 2. Reliability gaps (surfaced by 2026-05-15 audit)
 
+### Transitive PostCSS XSS advisory — not exploitable in this deployment
+`npm audit` flags two moderate-severity advisories on PostCSS < 8.5.10 (GHSA-qx2v-qp2m-jg93: PostCSS has XSS via Unescaped `</style>` in its CSS Stringify Output) reached transitively via Next.js's bundled CSS pipeline (`node_modules/next/node_modules/postcss`).
+
+**Why it matters in theory:** PostCSS's CSS stringification could mishandle a crafted `</style>` substring and produce output that, if rendered into HTML without sanitisation, creates an XSS vector.
+
+**Why it doesn't matter here:** PostCSS runs only at build time inside the Vercel build container. It does not run in the request runtime. No user-controlled input flows into PostCSS at any point — the only CSS PostCSS processes is the static `globals.css` + Tailwind generated output, both authored by us. There is no path from a user input to a `</style>`-bearing string reaching PostCSS's stringification stage.
+
+**Planned response:** wait for Next.js to bump its bundled PostCSS version (the fix is already published upstream as `postcss@8.5.10`+). Forcing the fix today would require `npm audit fix --force`, which proposes a Next.js downgrade to 9.3.x — a breaking change that's refused. Re-run `npm audit` after the next Next.js minor release.
+
 ### No retry on transient Anthropic API failures
 `src/app/api/analysis/route.ts` lines 283–350 wraps each per-image extraction in a single try/catch with no exponential backoff or per-image retry. A 429 (rate limit), 503 (server overloaded), or transient network error fails the image immediately. The user loses tokens already paid for the failed call.
 

@@ -102,6 +102,7 @@ export default function Sidebar() {
   }, [project]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async Supabase fetch via checkCompletion; setState happens inside the awaited callback
     checkCompletion();
   }, [checkCompletion, pathname]); // Re-check on navigation
 

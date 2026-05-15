@@ -190,6 +190,7 @@ export default function MappingPage() {
   }, [project]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- async Supabase multi-query via loadMappings; setState happens inside the awaited callback
     loadMappings();
   }, [loadMappings]);
 

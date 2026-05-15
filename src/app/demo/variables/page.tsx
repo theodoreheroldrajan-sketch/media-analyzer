@@ -12,34 +12,47 @@ const ENABLED_VARS_KEY = "media-analyzer-enabled-vars";
 const HYPOTHESIS_VARS_KEY = "media-analyzer-hypothesis-vars";
 const MAX_HYPOTHESES = 5;
 
+// Lazy initializers read localStorage once on first render — no mount-time
+// useEffect+setState cascade. Works because this is a "use client" page;
+// the server renders with defaults, then the client picks up stored values
+// during hydration. The two persist-on-change effects below are pure
+// side effects (no setState), but the lint rule flags them anyway, so
+// they're suppressed with a comment.
+
+function loadEnabled(demoVars: ReturnType<typeof getDemoVariables>): Record<string, boolean> {
+  const defaults = Object.fromEntries(demoVars.map((v) => [v.name, true]));
+  if (typeof window === "undefined") return defaults;
+  try {
+    const raw = window.localStorage.getItem(ENABLED_VARS_KEY);
+    if (!raw) return defaults;
+    const parsed = JSON.parse(raw) as Record<string, boolean>;
+    return { ...defaults, ...parsed };
+  } catch {
+    return defaults;
+  }
+}
+
+function loadHypotheses(): string[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(HYPOTHESIS_VARS_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.slice(0, MAX_HYPOTHESES) : [];
+  } catch {
+    return [];
+  }
+}
+
 function VariablesContent() {
   const { data, mode } = useDemo();
   const demoVars = getDemoVariables();
-  const [enabled, setEnabled] = useState<Record<string, boolean>>(
-    Object.fromEntries(demoVars.map((v) => [v.name, true]))
+  const [enabled, setEnabled] = useState<Record<string, boolean>>(() =>
+    loadEnabled(demoVars)
   );
-  const [hypotheses, setHypotheses] = useState<string[]>([]);
+  const [hypotheses, setHypotheses] = useState<string[]>(() => loadHypotheses());
 
-  // Load saved enabled + hypothesis state on mount
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const rawEnabled = window.localStorage.getItem(ENABLED_VARS_KEY);
-      if (rawEnabled) {
-        const parsed = JSON.parse(rawEnabled) as Record<string, boolean>;
-        setEnabled((prev) => ({ ...prev, ...parsed }));
-      }
-      const rawHyp = window.localStorage.getItem(HYPOTHESIS_VARS_KEY);
-      if (rawHyp) {
-        const parsed = JSON.parse(rawHyp) as string[];
-        if (Array.isArray(parsed)) setHypotheses(parsed.slice(0, MAX_HYPOTHESES));
-      }
-    } catch {
-      /* ignore parse errors */
-    }
-  }, []);
-
-  // Persist enabled state on change
+  // Persist enabled state on change. Pure side effect — no setState.
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
@@ -49,7 +62,7 @@ function VariablesContent() {
     }
   }, [enabled]);
 
-  // Persist hypothesis selection on change
+  // Persist hypothesis selection on change. Pure side effect — no setState.
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {

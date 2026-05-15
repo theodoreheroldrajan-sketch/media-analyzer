@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useDemo } from "@/context/demo-context";
 import DemoModeGuard from "@/components/demo-mode-guard";
 import {
@@ -9,6 +9,7 @@ import {
   countPredictors,
   type MetricKey,
 } from "@/lib/analytics";
+import { useLocalStorage } from "@/lib/use-local-storage";
 import { getDemoVariables } from "@/lib/demo-data";
 
 import MetricSwitcher from "@/components/dashboard/metric-switcher";
@@ -30,26 +31,14 @@ const HYPOTHESIS_VARS_KEY = "media-analyzer-hypothesis-vars";
 function DashboardContent() {
   const { data, mode } = useDemo();
   const [metric, setMetric] = useState<MetricKey>("ctr");
-  const [enabledVars, setEnabledVars] = useState<Record<string, boolean> | null>(
+
+  // React 19: useSyncExternalStore-backed localStorage hook (lib/use-local-storage)
+  // replaces the old useEffect+setState pattern.
+  const enabledVars = useLocalStorage<Record<string, boolean> | null>(
+    ENABLED_VARS_KEY,
     null
   );
-  const [hypothesisVars, setHypothesisVars] = useState<string[]>([]);
-
-  // Read enabled-vars and hypothesis selections from the /variables page
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    try {
-      const raw = window.localStorage.getItem(ENABLED_VARS_KEY);
-      if (raw) setEnabledVars(JSON.parse(raw));
-      const rawHyp = window.localStorage.getItem(HYPOTHESIS_VARS_KEY);
-      if (rawHyp) {
-        const parsed = JSON.parse(rawHyp);
-        if (Array.isArray(parsed)) setHypothesisVars(parsed);
-      }
-    } catch {
-      /* ignore */
-    }
-  }, []);
+  const hypothesisVars = useLocalStorage<string[]>(HYPOTHESIS_VARS_KEY, []);
 
   // Compute model stability (Pro only) from enabled predictors
   const modelStability = useMemo<ModelStabilityInfo | undefined>(() => {
