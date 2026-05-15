@@ -56,7 +56,14 @@ export default function TrustScorePanel({
             Lowest of those three caps the overall.
           </p>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            flexShrink: 0,
+          }}
+        >
           {modelStability && (
             <span
               className="badge mono"
@@ -65,15 +72,18 @@ export default function TrustScorePanel({
                 color: stabilityColor(modelStability.color),
                 borderColor: stabilityColor(modelStability.color),
                 fontSize: 10,
+                whiteSpace: "nowrap",
               }}
             >
-              Model stability: {modelStability.color} ·{" "}
-              {modelStability.ratio.toFixed(1)}:1
+              Stability {modelStability.ratio.toFixed(1)}:1
             </span>
           )}
           <span
             className="badge"
-            style={{ color: trustColor(trustScore.overall) }}
+            style={{
+              color: trustColor(trustScore.overall),
+              whiteSpace: "nowrap",
+            }}
           >
             {trustScore.level}
           </span>
