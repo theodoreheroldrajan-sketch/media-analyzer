@@ -1,0 +1,12 @@
+.next/
+node_modules/
+out/
+build/
+coverage/
+package-lock.json
+*.lock
+legacy/
+claude-design/
+docs/
+public/
+*.pdf
