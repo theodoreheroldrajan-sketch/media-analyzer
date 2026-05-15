@@ -25,6 +25,7 @@ import RegressionTable from "@/components/dashboard/regression-table";
 import InteractionMatrix from "@/components/dashboard/interaction-matrix";
 
 const ENABLED_VARS_KEY = "media-analyzer-enabled-vars";
+const HYPOTHESIS_VARS_KEY = "media-analyzer-hypothesis-vars";
 
 function DashboardContent() {
   const { data, mode } = useDemo();
@@ -32,13 +33,19 @@ function DashboardContent() {
   const [enabledVars, setEnabledVars] = useState<Record<string, boolean> | null>(
     null
   );
+  const [hypothesisVars, setHypothesisVars] = useState<string[]>([]);
 
-  // Read enabled-vars selection from the /variables page
+  // Read enabled-vars and hypothesis selections from the /variables page
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
       const raw = window.localStorage.getItem(ENABLED_VARS_KEY);
       if (raw) setEnabledVars(JSON.parse(raw));
+      const rawHyp = window.localStorage.getItem(HYPOTHESIS_VARS_KEY);
+      if (rawHyp) {
+        const parsed = JSON.parse(rawHyp);
+        if (Array.isArray(parsed)) setHypothesisVars(parsed);
+      }
     } catch {
       /* ignore */
     }
@@ -107,7 +114,10 @@ function DashboardContent() {
 
       {/* Pro-only: regression table */}
       {isPro && data.regressionModels && (
-        <RegressionTable model={data.regressionModels[metric]} />
+        <RegressionTable
+          model={data.regressionModels[metric]}
+          hypothesisVariables={hypothesisVars}
+        />
       )}
 
       {/* Pro-only: interaction matrix */}

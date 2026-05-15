@@ -47,6 +47,31 @@ export type KeyMetrics = {
   avgROAS: number;
 };
 
+/**
+ * Benjamini–Hochberg false-discovery rate adjustment.
+ * Takes an array of raw p-values, returns adjusted p-values aligned to
+ * the input order. Used to control FDR on exploratory variables that
+ * were not pre-registered as hypotheses.
+ */
+export function benjaminiHochberg(pValues: number[]): number[] {
+  const n = pValues.length;
+  if (n === 0) return [];
+
+  // Pair p-values with their original index, then sort ascending
+  const indexed = pValues.map((p, i) => ({ p, i }));
+  indexed.sort((a, b) => a.p - b.p);
+
+  // Compute adjusted p-values, then enforce monotonicity from the largest down
+  const adjusted = new Array<number>(n);
+  let running = 1;
+  for (let rank = n - 1; rank >= 0; rank--) {
+    const raw = indexed[rank].p * n / (rank + 1);
+    running = Math.min(running, raw);
+    adjusted[indexed[rank].i] = Math.min(1, running);
+  }
+  return adjusted;
+}
+
 export type ModelStability = "green" | "yellow" | "red";
 
 /**
