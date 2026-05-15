@@ -57,7 +57,7 @@ export default function VariableTable({
   // are penalised — the difference matters for exploratory rows that the
   // user is using as hypothesis-generating signal.
   const displayed = useMemo(() => {
-    let data = filterVar === "all" ? varPerf : varPerf.filter((v) => v.variable === filterVar);
+    const data = filterVar === "all" ? varPerf : varPerf.filter((v) => v.variable === filterVar);
 
     function compare(a: VariablePerformance, b: VariablePerformance): number {
       let cmp = 0;

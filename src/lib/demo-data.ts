@@ -77,7 +77,7 @@ export type DemoInsight = {
   category: "hypothesis" | "exploratory";
 };
 
-export type DemoDashboardPayload = {
+type DemoDashboardPayload = {
   hasData: true;
   keyMetrics: KeyMetrics;
   variablePerformance: VariablePerformance[];
@@ -95,7 +95,7 @@ export type DemoDashboardPayload = {
   regressionThreshold: number;
 };
 
-export type DemoProject = {
+type DemoProject = {
   id: string;
   name: string;
   brand_name: string;
@@ -131,7 +131,7 @@ export type RegressionModel = {
   coefficients: RegressionCoefficient[];
 };
 
-export type InteractionCell = {
+type InteractionCell = {
   var1Value: string;
   var2Value: string;
   count: number;
@@ -152,7 +152,7 @@ export type AISuggestion = {
   estimatedImpact: string;
 };
 
-export type MatchSplit = {
+type MatchSplit = {
   autoMatched: string[];       // creativeIds
   suggested: {
     creativeId: string;
@@ -600,7 +600,6 @@ export function generateDemoData(mode: DemoMode = "lite"): DemoDataSet {
       keyMetrics.totalImpressions,
       100,
       100,
-      0.92,
       varPerf
     );
 

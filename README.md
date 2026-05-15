@@ -7,7 +7,7 @@ Upload ad creatives and performance data. Extract structured creative variables 
 - **Frontend:** Next.js (App Router), TypeScript, Tailwind CSS
 - **Backend:** Next.js Route Handlers
 - **Database:** Supabase Postgres + Storage
-- **AI:** Anthropic Claude Sonnet (structured extraction via tool use)
+- **AI:** Anthropic Claude Haiku 4.5 (structured extraction via forced tool use)
 
 ## Getting Started
 

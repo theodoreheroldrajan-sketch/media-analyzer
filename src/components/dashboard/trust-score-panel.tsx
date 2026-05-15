@@ -23,7 +23,6 @@ const SUB_SCORES: { key: keyof TrustScore; label: string }[] = [
   { key: "volumeScore", label: "Volume (impressions)" },
   { key: "mappingQuality", label: "Mapping quality" },
   { key: "dataCompleteness", label: "Data completeness" },
-  { key: "extractionConfidence", label: "Extraction confidence" },
   { key: "bucketBalance", label: "Bucket balance" },
 ];
 
@@ -47,7 +46,7 @@ export default function TrustScorePanel({
         <div>
           <h3
             className="panel-title"
-            title="Trust score is gated by mapping quality, data completeness, and creative count. If any of these is low, the overall score reflects that. Other factors (volume, extraction confidence, bucket balance) contribute proportionally."
+            title="Trust score is gated by mapping quality, data completeness, and creative count. If any of these is low, the overall score reflects that. Volume and bucket balance contribute proportionally."
           >
             Dataset trust score
           </h3>

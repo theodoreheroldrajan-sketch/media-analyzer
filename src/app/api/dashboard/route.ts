@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     // 2. Get extraction results
     const { data: extractions } = await supabase
       .from("extraction_results")
-      .select("creative_id, extracted_variables, confidence, status")
+      .select("creative_id, extracted_variables, status")
       .eq("run_id", run.id)
       .eq("status", "completed");
 
@@ -196,19 +196,11 @@ export async function GET(request: NextRequest) {
         ? ((mappings?.length ?? 0) / (totalCreatives ?? 1)) * 100
         : 0;
 
-    // Average extraction confidence
-    const avgConfidence =
-      extractions.length > 0
-        ? extractions.reduce((s, e) => s + (e.confidence ?? 0.8), 0) /
-          extractions.length
-        : 0;
-
     const trustScore = computeTrustScore(
       creativeData.length,
       keyMetrics.totalImpressions,
       mappingPct,
       dataCompletenessPct,
-      avgConfidence,
       variablePerformance
     );
 

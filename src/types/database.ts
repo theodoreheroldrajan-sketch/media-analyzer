@@ -286,8 +286,6 @@ export type Database = {
           run_id: string;
           creative_id: string;
           extracted_variables: Record<string, unknown>;
-          confidence: number | null;
-          notes: string | null;
           input_tokens: number;
           output_tokens: number;
           cost: number;
@@ -301,8 +299,6 @@ export type Database = {
           creative_id: string;
           extracted_variables: Record<string, unknown>;
           status: string;
-          confidence?: number | null;
-          notes?: string | null;
           input_tokens?: number;
           output_tokens?: number;
           cost?: number;
@@ -313,7 +309,6 @@ export type Database = {
         };
         Update: {
           extracted_variables?: Record<string, unknown>;
-          confidence?: number | null;
           input_tokens?: number;
           output_tokens?: number;
           cost?: number;

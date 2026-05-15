@@ -126,10 +126,23 @@ export type TrustScore = {
   volumeScore: number;
   mappingQuality: number;
   dataCompleteness: number;
-  extractionConfidence: number;
   bucketBalance: number;
   level: "excellent" | "good" | "fair" | "poor";
 };
+
+// ─── Trust-score named constants ─────────────────────────────────
+// Curves: creative count scales linearly to 100 at TRUST_CREATIVE_COUNT_TARGET
+// creatives; volume scales to 100 at 10^TRUST_VOLUME_LOG_DENOMINATOR
+// impressions. Composite is floor-gated: the lowest of creative count,
+// mapping quality, and data completeness caps the score; the upper score
+// (volume + bucket balance) contributes proportionally on top.
+const TRUST_CREATIVE_COUNT_TARGET = 50;
+const TRUST_VOLUME_LOG_DENOMINATOR = 6;
+const TRUST_COMPOSITE_VOLUME_WEIGHT = 0.5;
+const TRUST_COMPOSITE_BUCKET_BALANCE_WEIGHT = 0.5;
+const TRUST_THRESHOLD_EXCELLENT = 80;
+const TRUST_THRESHOLD_GOOD = 60;
+const TRUST_THRESHOLD_FAIR = 40;
 
 /**
  * Compute key aggregate metrics from creative performance data.
@@ -323,24 +336,40 @@ export function computeVariablePerformance(
 
 /**
  * Compute a dataset trust score (0-100).
+ *
+ * Five sub-scores feed the composite. Three of them (creative count, mapping
+ * quality, data completeness) act as floor conditions — the lowest of the
+ * three caps the overall. The remaining two (volume, bucket balance)
+ * contribute proportionally on top.
+ *
+ * Previously there was a sixth sub-score (extraction confidence) computed
+ * from extraction_results.confidence. That column is never populated by
+ * the Anthropic tool_use API and has been dropped from the schema; the
+ * sub-score went with it. See INVESTIGATION_CONFIDENCE.md for the
+ * rationale.
  */
 export function computeTrustScore(
   creativesAnalysed: number,
   totalImpressions: number,
   mappingPct: number,
   dataCompletenessPct: number,
-  avgExtractionConfidence: number,
   variablePerformance: VariablePerformance[]
 ): TrustScore {
   // Sub-scores (each 0-100)
 
-  // 1. Creative count: 20 = decent, 50 = good, 100+ = excellent
-  const creativeCount = Math.min(100, (creativesAnalysed / 50) * 100);
+  // 1. Creative count: scales linearly to 100 at TRUST_CREATIVE_COUNT_TARGET
+  const creativeCount = Math.min(
+    100,
+    (creativesAnalysed / TRUST_CREATIVE_COUNT_TARGET) * 100
+  );
 
-  // 2. Volume: 10K = decent, 100K = good, 1M+ = excellent
+  // 2. Volume: log10 of impressions, scaled so 10^6 = 1M impressions = 100
   const volumeScore =
     totalImpressions > 0
-      ? Math.min(100, (Math.log10(totalImpressions) / 6) * 100)
+      ? Math.min(
+          100,
+          (Math.log10(totalImpressions) / TRUST_VOLUME_LOG_DENOMINATOR) * 100
+        )
       : 0;
 
   // 3. Mapping quality (already 0-100)
@@ -349,10 +378,7 @@ export function computeTrustScore(
   // 4. Data completeness (already 0-100)
   const dataCompleteness = dataCompletenessPct;
 
-  // 5. Extraction confidence (already 0-1, scale to 0-100)
-  const extractionConfidence = avgExtractionConfidence * 100;
-
-  // 6. Bucket balance: penalise if too many variable groups have < 3 samples
+  // 5. Bucket balance: penalise if too many variable groups have < 3 samples
   const totalBuckets = variablePerformance.length;
   const insufficientBuckets = variablePerformance.filter(
     (v) => v.confidence === "insufficient"
@@ -362,21 +388,19 @@ export function computeTrustScore(
       ? ((totalBuckets - insufficientBuckets) / totalBuckets) * 100
       : 50;
 
-  // Floor-gated composite. Creative count, mapping quality, and data
-  // completeness are floor conditions — the lowest of the three caps the
-  // overall score. Volume, extraction confidence, and bucket balance
-  // contribute proportionally on top of that floor.
+  // Floor-gated composite.
   const floorScore = Math.min(creativeCount, mappingQuality, dataCompleteness);
   const upperScore =
-    volumeScore * 0.4 + extractionConfidence * 0.3 + bucketBalance * 0.3;
+    volumeScore * TRUST_COMPOSITE_VOLUME_WEIGHT +
+    bucketBalance * TRUST_COMPOSITE_BUCKET_BALANCE_WEIGHT;
   const overall = Math.round(floorScore * (upperScore / 100));
 
   const level: TrustScore["level"] =
-    overall >= 80
+    overall >= TRUST_THRESHOLD_EXCELLENT
       ? "excellent"
-      : overall >= 60
+      : overall >= TRUST_THRESHOLD_GOOD
         ? "good"
-        : overall >= 40
+        : overall >= TRUST_THRESHOLD_FAIR
           ? "fair"
           : "poor";
 
@@ -386,7 +410,6 @@ export function computeTrustScore(
     volumeScore: Math.round(volumeScore),
     mappingQuality: Math.round(mappingQuality),
     dataCompleteness: Math.round(dataCompleteness),
-    extractionConfidence: Math.round(extractionConfidence),
     bucketBalance: Math.round(bucketBalance),
     level,
   };
