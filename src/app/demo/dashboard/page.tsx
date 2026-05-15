@@ -136,7 +136,10 @@ function DashboardContent() {
         creativeData={data.creativeData}
       />
 
-      <InsightsPanel insights={data.insights} />
+      <InsightsPanel
+        insights={data.insights}
+        hypothesisVariables={hypothesisVars}
+      />
 
       <div className="page-actions">
         <Link href="/demo/analysis" className="btn">← Back to analysis</Link>

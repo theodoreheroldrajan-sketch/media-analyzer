@@ -48,6 +48,16 @@ export type KeyMetrics = {
 };
 
 /**
+ * Noise-adjusted ranking for exploratory findings.
+ * Penalises small-N findings even when their absolute delta is large.
+ * Used to order "patterns to investigate" so a 30% delta from n=3
+ * ranks below a 15% delta from n=20.
+ */
+export function noiseAdjustedRank(varPerf: VariablePerformance): number {
+  return Math.abs(varPerf.delta) * Math.sqrt(varPerf.count);
+}
+
+/**
  * Benjamini–Hochberg false-discovery rate adjustment.
  * Takes an array of raw p-values, returns adjusted p-values aligned to
  * the input order. Used to control FDR on exploratory variables that
