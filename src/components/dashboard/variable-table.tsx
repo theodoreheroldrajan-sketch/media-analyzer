@@ -154,7 +154,25 @@ export default function VariableTable({
                               : "var(--text-2)",
                     }}
                   >
-                    {vp.confidence === "insufficient" ? "—" : `${vp.delta > 0 ? "+" : ""}${vp.delta.toFixed(1)}%`}
+                    {vp.confidence === "insufficient" ? (
+                      "—"
+                    ) : (
+                      <>
+                        <span>{vp.delta > 0 ? "+" : ""}{vp.delta.toFixed(1)}%</span>
+                        <span
+                          className="mono"
+                          style={{
+                            display: "block",
+                            fontSize: 10,
+                            fontWeight: 400,
+                            color: "var(--text-3)",
+                            marginTop: 2,
+                          }}
+                        >
+                          [{vp.delta95Lower > 0 ? "+" : ""}{vp.delta95Lower.toFixed(1)}%, {vp.delta95Upper > 0 ? "+" : ""}{vp.delta95Upper.toFixed(1)}%]
+                        </span>
+                      </>
+                    )}
                   </td>
                   <td>
                     <span

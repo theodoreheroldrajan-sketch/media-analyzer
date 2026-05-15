@@ -51,21 +51,33 @@ export default function VariableChart({
     );
   }
 
-  // Find max absolute delta for scaling
-  const maxAbsDelta = Math.max(...rows.map((r) => Math.abs(r.delta)), 1);
+  // Find max absolute delta (including CI bounds) for scaling
+  const maxAbsDelta = Math.max(
+    ...rows.flatMap((r) => [
+      Math.abs(r.delta),
+      Math.abs(r.delta95Lower),
+      Math.abs(r.delta95Upper),
+    ]),
+    1
+  );
 
   return (
     <div className="bar-chart">
       {/* Overall average line label */}
       <div className="bar-chart-baseline">
         <span className="muted" style={{ fontSize: 11 }}>
-          Overall avg: {METRIC_FORMAT[metric](rows[0].overallAvg)}
+          Overall avg: {METRIC_FORMAT[metric](rows[0].overallAvg)} · whiskers
+          show 95% CI
         </span>
       </div>
 
       {rows.map((row, i) => {
         const good = isGoodDelta(row.delta, metric);
         const barWidth = Math.max(4, (Math.abs(row.delta) / maxAbsDelta) * 100);
+        const ciLowerPct = (Math.abs(row.delta95Lower) / maxAbsDelta) * 100;
+        const ciUpperPct = (Math.abs(row.delta95Upper) / maxAbsDelta) * 100;
+        const ciLeft = Math.min(ciLowerPct, ciUpperPct);
+        const ciRight = Math.max(ciLowerPct, ciUpperPct);
 
         return (
           <div className="bar-row" key={`${row.value}-${i}`}>
@@ -73,7 +85,7 @@ export default function VariableChart({
               <span className="bar-label-text">{row.value}</span>
               <span className="bar-label-count mono">n={row.count}</span>
             </div>
-            <div className="bar-track">
+            <div className="bar-track" style={{ position: "relative" }}>
               <div
                 className="bar-fill"
                 style={{
@@ -82,6 +94,43 @@ export default function VariableChart({
                   transitionDelay: `${i * 40}ms`,
                 }}
               />
+              <div
+                className="bar-ci"
+                title={`95% CI: ${row.delta95Lower > 0 ? "+" : ""}${row.delta95Lower.toFixed(1)}% to ${row.delta95Upper > 0 ? "+" : ""}${row.delta95Upper.toFixed(1)}%`}
+                style={{
+                  position: "absolute",
+                  top: "50%",
+                  left: `${ciLeft}%`,
+                  width: `${Math.max(ciRight - ciLeft, 0.5)}%`,
+                  height: 1,
+                  background: "rgba(255,255,255,0.7)",
+                  transform: "translateY(-50%)",
+                  opacity: animate ? 1 : 0,
+                  transition: `opacity 300ms ease ${i * 40 + 300}ms`,
+                  pointerEvents: "auto",
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    top: -4,
+                    width: 1,
+                    height: 9,
+                    background: "rgba(255,255,255,0.85)",
+                  }}
+                />
+                <span
+                  style={{
+                    position: "absolute",
+                    right: 0,
+                    top: -4,
+                    width: 1,
+                    height: 9,
+                    background: "rgba(255,255,255,0.85)",
+                  }}
+                />
+              </div>
             </div>
             <div className="bar-value mono">
               <span

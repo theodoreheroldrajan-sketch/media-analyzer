@@ -28,6 +28,8 @@ export type VariablePerformance = {
   avgMetric: number;
   overallAvg: number;
   delta: number; // percentage difference vs overall
+  delta95Lower: number; // bootstrap 95% CI lower bound on delta
+  delta95Upper: number; // bootstrap 95% CI upper bound on delta
   confidence: "high" | "medium" | "low" | "insufficient";
 };
 
@@ -96,6 +98,47 @@ export function computeKeyMetrics(data: CreativeData[]): KeyMetrics {
     avgCVR: totalClicks > 0 ? (totalConversions / totalClicks) * 100 : 0,
     avgROAS: totalSpend > 0 ? totalRevenue / totalSpend : 0,
   };
+}
+
+/**
+ * Resample an array with replacement (bootstrap sampling).
+ */
+function resampleWithReplacement<T>(arr: T[], n: number): T[] {
+  const out: T[] = new Array(n);
+  const len = arr.length;
+  for (let i = 0; i < n; i++) {
+    out[i] = arr[Math.floor(Math.random() * len)];
+  }
+  return out;
+}
+
+/**
+ * Compute a 95% bootstrap confidence interval on the percentage delta
+ * between a group's metric and the overall metric.
+ *
+ * Uses volume-weighted aggregation (via getMetricValue / sum-of-raws)
+ * inside each bootstrap iteration.
+ */
+function bootstrapDeltaCI(
+  group: CreativeData[],
+  overall: CreativeData[],
+  metric: MetricKey,
+  iterations = 1000
+): { lower95: number; upper95: number } {
+  const deltas: number[] = new Array(iterations);
+
+  for (let i = 0; i < iterations; i++) {
+    const groupSample = resampleWithReplacement(group, group.length);
+    const overallSample = resampleWithReplacement(overall, overall.length);
+    const g = getMetricValue(groupSample, metric);
+    const o = getMetricValue(overallSample, metric);
+    deltas[i] = o !== 0 ? ((g - o) / o) * 100 : 0;
+  }
+
+  deltas.sort((a, b) => a - b);
+  const loIdx = Math.floor(deltas.length * 0.025);
+  const hiIdx = Math.floor(deltas.length * 0.975);
+  return { lower95: deltas[loIdx], upper95: deltas[hiIdx] };
 }
 
 /**
@@ -175,6 +218,16 @@ export function computeVariablePerformance(
         confidence = "high";
       }
 
+      // Bootstrap 95% CI on the delta. Skip for insufficient samples —
+      // resampling 1 or 2 points just returns the same point estimate.
+      let delta95Lower = delta;
+      let delta95Upper = delta;
+      if (confidence !== "insufficient") {
+        const ci = bootstrapDeltaCI(group, data, metric, 1000);
+        delta95Lower = ci.lower95;
+        delta95Upper = ci.upper95;
+      }
+
       results.push({
         variable,
         value,
@@ -182,6 +235,8 @@ export function computeVariablePerformance(
         avgMetric,
         overallAvg,
         delta,
+        delta95Lower,
+        delta95Upper,
         confidence,
       });
     }
