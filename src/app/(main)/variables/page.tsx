@@ -4,17 +4,21 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import { useProject } from "@/context/project-context";
+import { getSupabase } from "@/lib/supabase";
 import type { VariableDefinition } from "@/types/database";
 import {
   UNIVERSAL_VARIABLES,
   getCategoryVariables,
 } from "@/lib/variables";
 
+const MAX_HYPOTHESES = 5;
+
 export default function VariablesPage() {
   const router = useRouter();
-  const { project } = useProject();
+  const { project, refresh } = useProject();
 
   const [variables, setVariables] = useState<VariableDefinition[]>([]);
+  const [hypotheses, setHypotheses] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -62,6 +66,17 @@ export default function VariablesPage() {
     loadSchema();
   }, [loadSchema]);
 
+  // Load hypothesis selection from the project row when project arrives
+  useEffect(() => {
+    if (project?.pre_registered_variables) {
+      setHypotheses(
+        Array.isArray(project.pre_registered_variables)
+          ? project.pre_registered_variables.slice(0, MAX_HYPOTHESES)
+          : []
+      );
+    }
+  }, [project]);
+
   // Toggle a variable on/off
   function toggleVariable(index: number) {
     setSaved(false);
@@ -70,6 +85,16 @@ export default function VariablesPage() {
         i === index ? { ...v, enabled: !v.enabled } : v
       )
     );
+  }
+
+  // Toggle hypothesis flag on a variable (max MAX_HYPOTHESES)
+  function toggleHypothesis(name: string) {
+    setSaved(false);
+    setHypotheses((prev) => {
+      if (prev.includes(name)) return prev.filter((n) => n !== name);
+      if (prev.length >= MAX_HYPOTHESES) return prev;
+      return [...prev, name];
+    });
   }
 
   // Add custom variable
@@ -117,13 +142,14 @@ export default function VariablesPage() {
     setVariables((prev) => prev.filter((_, i) => i !== index));
   }
 
-  // Save schema
+  // Save schema (variables) AND hypothesis selection (projects.pre_registered_variables)
   async function saveSchema() {
     if (!project) return;
     setSaving(true);
     setError(null);
 
     try {
+      // 1. Save the variable schema
       const res = await fetch("/api/variables", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -135,6 +161,17 @@ export default function VariablesPage() {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Save failed");
+
+      // 2. Save hypothesis selection to projects table
+      const { error: hypErr } = await getSupabase()
+        .from("projects")
+        .update({ pre_registered_variables: hypotheses })
+        .eq("id", project.id);
+
+      if (hypErr) throw new Error(`Hypothesis save failed: ${hypErr.message}`);
+
+      // Refresh the project context so other pages see the new value
+      await refresh();
 
       setSaved(true);
     } catch (err) {
@@ -168,6 +205,10 @@ export default function VariablesPage() {
   }
 
   function renderVariableRow(v: VariableDefinition, globalIndex: number) {
+    const isHypothesis = hypotheses.includes(v.name);
+    const atLimit = hypotheses.length >= MAX_HYPOTHESES;
+    const hypDisabled = !isHypothesis && atLimit;
+
     return (
       <label
         className="checkbox-row"
@@ -189,6 +230,34 @@ export default function VariablesPage() {
             ? ` (${v.enum_values.length})`
             : ""}
         </span>
+        <button
+          type="button"
+          className="btn mono"
+          onClick={(e) => {
+            e.preventDefault();
+            toggleHypothesis(v.name);
+          }}
+          disabled={hypDisabled}
+          title={
+            isHypothesis
+              ? "Flagged as a specific hypothesis"
+              : hypDisabled
+                ? `Maximum ${MAX_HYPOTHESES} hypotheses reached`
+                : "Flag as a specific hypothesis you're testing"
+          }
+          style={{
+            fontSize: 10,
+            padding: "1px 6px",
+            marginLeft: 8,
+            cursor: hypDisabled ? "not-allowed" : "pointer",
+            opacity: hypDisabled ? 0.4 : 1,
+            background: isHypothesis ? "rgba(193, 60, 62, 0.16)" : "transparent",
+            color: isHypothesis ? "var(--red)" : "var(--text-2)",
+            borderColor: isHypothesis ? "var(--red)" : "var(--border)",
+          }}
+        >
+          {isHypothesis ? "★ hyp" : "+ hyp"}
+        </button>
         {v.source === "custom" && (
           <button
             className="btn"
@@ -246,6 +315,32 @@ export default function VariablesPage() {
         </div>
       ) : (
         <>
+          {/* Hypothesis pre-registration */}
+          <div
+            className="panel"
+            style={{
+              marginBottom: 16,
+              background: "rgba(193, 60, 62, 0.06)",
+              borderColor: "rgba(193, 60, 62, 0.4)",
+            }}
+          >
+            <div className="between">
+              <div>
+                <h3 className="panel-title">Pre-register your hypotheses</h3>
+                <p className="panel-sub" style={{ marginBottom: 0 }}>
+                  Use the &quot;+ hyp&quot; button on any variable below to flag up to{" "}
+                  {MAX_HYPOTHESES} you have a specific hypothesis about. Optional —
+                  leave empty if exploring. Pre-registered variables appear in
+                  their own section on the dashboard; the rest go through
+                  Benjamini-Hochberg FDR correction.
+                </p>
+              </div>
+              <span className="badge mono">
+                {hypotheses.length}/{MAX_HYPOTHESES} hypotheses
+              </span>
+            </div>
+          </div>
+
           {/* Universal variables */}
           <div className="panel" style={{ marginBottom: 16 }}>
             <div className="between">

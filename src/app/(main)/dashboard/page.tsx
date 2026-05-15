@@ -41,6 +41,9 @@ export default function DashboardPage() {
   const [creativeCount, setCreativeCount] = useState(0);
   const [regressionReady, setRegressionReady] = useState(false);
   const [regressionThreshold, setRegressionThreshold] = useState(100);
+  const [hypothesisVariables, setHypothesisVariables] = useState<string[]>([]);
+  const [currentSnapshot, setCurrentSnapshot] = useState(0);
+  const [totalSnapshots, setTotalSnapshots] = useState(0);
 
   const loadDashboard = useCallback(
     async (m: MetricKey) => {
@@ -60,6 +63,9 @@ export default function DashboardPage() {
           setCreativeCount(data.creativeCount);
           setRegressionReady(data.regressionReady);
           setRegressionThreshold(data.regressionThreshold);
+          setHypothesisVariables(data.hypothesisVariables ?? []);
+          setCurrentSnapshot(data.currentSnapshot ?? 0);
+          setTotalSnapshots(data.totalSnapshots ?? 0);
         } else {
           setHasData(false);
         }
@@ -104,6 +110,16 @@ export default function DashboardPage() {
         <>
           <MetricSwitcher metric={metric} onChange={setMetric} />
 
+          {totalSnapshots > 0 && (
+            <p
+              className="mono muted"
+              style={{ fontSize: 11, marginTop: 4, marginBottom: 12 }}
+            >
+              Showing snapshot {currentSnapshot} of {totalSnapshots}
+              {totalSnapshots > 1 ? " (older snapshots preserved)" : ""}
+            </p>
+          )}
+
           {keyMetrics && (
             <SummaryHeader
               keyMetrics={keyMetrics}
@@ -121,9 +137,16 @@ export default function DashboardPage() {
           </div>
 
           <VariableExplorer varPerf={varPerf} metric={metric} />
-          <VariableTable varPerf={varPerf} metric={metric} />
+          <VariableTable
+            varPerf={varPerf}
+            metric={metric}
+            hypothesisVariables={hypothesisVariables}
+          />
           <CreativeGallery gallery={gallery} metric={metric} />
-          <InsightsPanel insights={null} />
+          <InsightsPanel
+            insights={null}
+            hypothesisVariables={hypothesisVariables}
+          />
         </>
       )}
 
