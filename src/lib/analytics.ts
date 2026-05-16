@@ -345,7 +345,7 @@ export function computeVariablePerformance(
  * Previously there was a sixth sub-score (extraction confidence) computed
  * from extraction_results.confidence. That column is never populated by
  * the Anthropic tool_use API and has been dropped from the schema; the
- * sub-score went with it. See INVESTIGATION_CONFIDENCE.md for the
+ * sub-score went with it. See POST_AUDIT_COMPLETION.md (appendix) for the
  * rationale.
  */
 export function computeTrustScore(

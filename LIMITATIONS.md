@@ -101,7 +101,7 @@ The column exists in the schema as nullable; the analysis route never writes to 
 
 **Why it matters:** the dashboard reports a "confidence" sub-score that doesn't measure anything. Cosmetic / honesty issue.
 
-**Planned response:** see `INVESTIGATION_CONFIDENCE.md`. Recommended fix is to drop the column + the sub-score (Option A in that file). Deferred for a follow-up commit cycle.
+**Planned response:** acted on in PR #16 (2026-05-15) — the `confidence` column was dropped along with `notes`, and the trust score was re-weighted to 5 sub-scores. See the appendix in `POST_AUDIT_COMPLETION.md` for the full investigation.
 
 ---
 
