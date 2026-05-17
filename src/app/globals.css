@@ -1248,3 +1248,252 @@ input[type="radio"] { accent-color: var(--primary); }
   border-radius: var(--radius-sm);
   font: 400 14px/20px var(--font-ui);
 }
+
+/* ─── Simplified / Advanced dashboard view (v1) ──────────────────── */
+
+.dashboard-header-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.dashboard-header-row .page-head { margin: 0; flex: 1 1 320px; }
+
+.view-mode-switcher { flex-shrink: 0; }
+
+/* Simple prose blocks (used inside TrustScorePanel when simplified) */
+.simple-prose-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 12px;
+}
+.simple-prose-block {
+  background: var(--surface-low);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  border-left: 3px solid var(--outline-variant);
+}
+.simple-prose-block.simple-prose-good { border-left-color: var(--green); }
+.simple-prose-block.simple-prose-warn { border-left-color: var(--amber); }
+.simple-prose-eyebrow {
+  font: 600 10px/1 var(--font-mono);
+  letter-spacing: 0.6px;
+  color: var(--text-3);
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+.simple-prose-text {
+  font: 400 13px/1.55 var(--font-ui);
+  color: var(--text-2);
+  margin: 0;
+}
+
+/* Simplified KeyMetricsPanel sub-panels */
+.simple-stat-group {
+  border-top: 1px solid var(--outline-variant);
+  padding-top: 16px;
+}
+.simple-stat-group:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.simple-stat-group-title {
+  font: 600 13px/1 var(--font-ui);
+  letter-spacing: 0.2px;
+  color: var(--text-2);
+  margin: 0 0 10px;
+  text-transform: uppercase;
+  font-size: 11px;
+}
+.simple-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.simple-stat {
+  background: var(--surface-low);
+  border: 1px solid var(--outline-variant);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+}
+.simple-stat.simple-stat-highlighted {
+  background: var(--primary-container);
+  border-color: var(--primary);
+}
+.simple-stat-label {
+  font: 600 11px/1 var(--font-ui);
+  letter-spacing: 0.4px;
+  color: var(--text-3);
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+.simple-stat-value {
+  font: 600 20px/1.1 var(--font-ui);
+  color: var(--text);
+  margin: 0 0 6px;
+}
+.simple-stat-explain {
+  font: 400 12px/1.5 var(--font-ui);
+  color: var(--text-2);
+  margin: 0;
+}
+
+/* Finding cards (variable performance, simplified) */
+.finding-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.finding-card {
+  border: 1px solid var(--outline-variant);
+  border-left: 3px solid var(--outline-variant);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: 16px 18px;
+}
+.finding-card.finding-good { border-left-color: var(--green); }
+.finding-card.finding-bad { border-left-color: var(--red); }
+.finding-headline {
+  font: 600 14px/1.4 var(--font-ui);
+  color: var(--text);
+  margin: 0;
+}
+.finding-detail {
+  font: 400 13px/1.55 var(--font-ui);
+  color: var(--text-2);
+  margin: 8px 0 12px;
+}
+.finding-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.finding-bar-row {
+  display: grid;
+  grid-template-columns: 180px 1fr 80px;
+  align-items: center;
+  gap: 10px;
+  font: 400 12px/1.2 var(--font-ui);
+}
+.finding-bar-label {
+  color: var(--text-2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+.finding-bar-track {
+  height: 10px;
+  background: var(--surface-high);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+.finding-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 400ms var(--ease-emphasized);
+}
+.finding-bar-value {
+  text-align: right;
+  color: var(--text-2);
+  font-size: 12px;
+}
+.finding-tip {
+  margin: 12px 0 0;
+  padding: 10px 12px;
+  background: var(--surface-low);
+  border-radius: var(--radius-sm);
+  font: 400 12px/1.55 var(--font-ui);
+  color: var(--text-2);
+}
+
+/* Recommendation cards (insights, simplified) */
+.recommendation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.recommendation-card {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 14px;
+  padding: 14px 16px;
+  background: var(--surface-low);
+  border: 1px solid var(--outline-variant);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-md);
+}
+.recommendation-card.recommendation-positive { border-left-color: var(--green); }
+.recommendation-card.recommendation-negative { border-left-color: var(--red); }
+.recommendation-card.recommendation-neutral { border-left-color: var(--amber); }
+.recommendation-number {
+  font: 600 22px/1 var(--font-mono);
+  color: var(--text-3);
+  text-align: center;
+  padding-top: 4px;
+}
+.recommendation-body { display: flex; flex-direction: column; gap: 4px; }
+.recommendation-eyebrow {
+  font: 600 10px/1 var(--font-mono);
+  letter-spacing: 0.6px;
+  color: var(--text-3);
+  margin: 0;
+  text-transform: uppercase;
+}
+.recommendation-headline {
+  font: 600 14px/1.3 var(--font-ui);
+  color: var(--text);
+  margin: 0;
+}
+.recommendation-detail {
+  font: 400 13px/1.55 var(--font-ui);
+  color: var(--text-2);
+  margin: 0;
+}
+
+/* Heads-up card */
+.heads-up {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--amber-soft);
+  border: 1px solid var(--amber);
+  border-radius: var(--radius-md);
+  margin-bottom: 16px;
+}
+.heads-up-icon {
+  width: 28px; height: 28px;
+  background: var(--amber);
+  color: white;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  align-self: start;
+}
+.heads-up-title {
+  font: 600 14px/1.2 var(--font-ui);
+  color: var(--amber-text);
+  margin: 0 0 4px;
+}
+.heads-up-sub {
+  font: 400 12px/1.5 var(--font-ui);
+  color: var(--amber-text);
+  margin: 0 0 8px;
+  opacity: 0.85;
+}
+.heads-up-list {
+  margin: 0;
+  padding-left: 18px;
+  font: 400 12px/1.55 var(--font-ui);
+  color: var(--amber-text);
+}
+.heads-up-list li { margin-bottom: 4px; }
+.heads-up-list li:last-child { margin-bottom: 0; }
+.heads-up-list strong { font-weight: 600; }

@@ -43,6 +43,9 @@ yarn-error.log*
 # claude design exports
 /claude-design
 
+# claude code dev tooling (local launch config, plans, etc.)
+.claude/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { MetricKey } from "@/lib/analytics";
 import type { CreativeData } from "@/lib/analytics";
+import { tierForRank, METRIC_PLAIN_NAME, getVariableCopy } from "@/lib/simplified-copy";
 
 type GalleryItem = {
   creativeId: string;
@@ -29,14 +30,35 @@ const METRIC_FORMAT: Record<MetricKey, (v: number) => string> = {
   roas: (v) => `${v.toFixed(2)}x`,
 };
 
+function humaniseValue(v: unknown): string {
+  return String(v).replace(/_/g, " ");
+}
+
+function summariseVariables(vars: Record<string, unknown> | null): string {
+  if (!vars) return "";
+  const interesting: string[] = [];
+  for (const key of ["lifestyle_vs_studio", "message_angle", "colour_palette", "creative_format"]) {
+    const v = vars[key];
+    if (v != null && v !== "" && v !== false) interesting.push(humaniseValue(v));
+  }
+  if (interesting.length === 0) {
+    for (const key of ["human_present", "urgency_cue", "offer_present"]) {
+      if (vars[key] === true) interesting.push(getVariableCopy(key).plainName.toLowerCase());
+    }
+  }
+  return interesting.slice(0, 3).join(" · ");
+}
+
 export default function CreativeGallery({
   gallery,
   metric,
   creativeData,
+  simplified = false,
 }: {
   gallery: GalleryItem[];
   metric: MetricKey;
   creativeData?: CreativeData[];
+  simplified?: boolean;
 }) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [showAll, setShowAll] = useState(false);
@@ -53,7 +75,9 @@ export default function CreativeGallery({
     <div className="panel">
       <div className="between">
         <h3 className="panel-title">
-          Creative gallery — sorted by {METRIC_LABELS[metric]}
+          {simplified
+            ? `Your creatives — ranked by ${METRIC_PLAIN_NAME[metric]}`
+            : `Creative gallery — sorted by ${METRIC_LABELS[metric]}`}
         </h3>
         <span className="badge mono" style={{ fontSize: 11 }}>
           {metric === "cpc" || metric === "cpa"
@@ -98,31 +122,90 @@ export default function CreativeGallery({
                   </div>
 
                   <div className="gallery-info">
-                    <div className="between" style={{ marginBottom: 4 }}>
-                      <span className="mono" style={{ fontWeight: 600, fontSize: 13 }}>
-                        {METRIC_FORMAT[metric](item.metricValue)}
-                      </span>
-                    </div>
-                    <p className="mono gallery-filename">{item.filename}</p>
-                    <p className="muted" style={{ fontSize: 10, margin: 0 }}>
-                      {item.impressions.toLocaleString()} imps · {item.clicks.toLocaleString()} clicks
-                    </p>
+                    {simplified ? (
+                      <>
+                        {(() => {
+                          const tier = tierForRank(i, gallery.length);
+                          const toneColor =
+                            tier.tone === "good"
+                              ? "var(--green-text)"
+                              : tier.tone === "bad"
+                              ? "var(--red-text)"
+                              : "var(--text-2)";
+                          return (
+                            <p
+                              style={{
+                                fontWeight: 600,
+                                fontSize: 12,
+                                margin: "0 0 4px",
+                                color: toneColor,
+                              }}
+                            >
+                              {tier.label}
+                            </p>
+                          );
+                        })()}
+                        {(() => {
+                          const summary = summariseVariables(getCreativeVars(item.creativeId));
+                          return summary ? (
+                            <p
+                              className="gallery-filename"
+                              style={{
+                                fontFamily: "var(--font-ui)",
+                                textTransform: "capitalize",
+                                fontSize: 11,
+                              }}
+                            >
+                              {summary}
+                            </p>
+                          ) : null;
+                        })()}
+                        <p className="muted" style={{ fontSize: 10, margin: 0 }}>
+                          Shown {item.impressions.toLocaleString()} times · {item.clicks.toLocaleString()} clicks
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <div className="between" style={{ marginBottom: 4 }}>
+                          <span className="mono" style={{ fontWeight: 600, fontSize: 13 }}>
+                            {METRIC_FORMAT[metric](item.metricValue)}
+                          </span>
+                        </div>
+                        <p className="mono gallery-filename">{item.filename}</p>
+                        <p className="muted" style={{ fontSize: 10, margin: 0 }}>
+                          {item.impressions.toLocaleString()} imps · {item.clicks.toLocaleString()} clicks
+                        </p>
+                      </>
+                    )}
                   </div>
 
                   {/* Expanded detail */}
                   {isExpanded && vars && (
                     <div className="gallery-detail">
                       <p style={{ fontSize: 11, fontWeight: 600, marginBottom: 6 }}>
-                        Extracted variables
+                        {simplified ? "What's in this creative" : "Extracted variables"}
                       </p>
                       <div className="gallery-vars">
                         {Object.entries(vars).map(([k, v]) => (
                           <div key={k} className="gallery-var-row">
-                            <span className="mono" style={{ fontSize: 10, color: "var(--text-3)" }}>
-                              {k}
+                            <span
+                              className={simplified ? "" : "mono"}
+                              style={{
+                                fontSize: 10,
+                                color: "var(--text-3)",
+                                textTransform: simplified ? "capitalize" : "none",
+                              }}
+                            >
+                              {simplified ? getVariableCopy(k).plainName : k}
                             </span>
-                            <span className="mono" style={{ fontSize: 10 }}>
-                              {String(v)}
+                            <span
+                              className={simplified ? "" : "mono"}
+                              style={{
+                                fontSize: 10,
+                                textTransform: simplified ? "capitalize" : "none",
+                              }}
+                            >
+                              {simplified ? humaniseValue(v) : String(v)}
                             </span>
                           </div>
                         ))}

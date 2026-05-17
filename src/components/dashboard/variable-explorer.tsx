@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react";
 import type { MetricKey, VariablePerformance, CreativeData } from "@/lib/analytics";
 import type { VariableInteraction } from "@/lib/demo-data";
+import { getVariableCopy, METRIC_PLAIN_NAME } from "@/lib/simplified-copy";
 import VariableChart from "./variable-chart";
 import ChartTypeSelector, { type ChartType } from "./charts/chart-type-selector";
 import ScatterChart from "./charts/scatter-chart";
@@ -28,12 +29,14 @@ export default function VariableExplorer({
   isPro = false,
   creativeData,
   interactions,
+  simplified = false,
 }: {
   varPerf: VariablePerformance[];
   metric: MetricKey;
   isPro?: boolean;
   creativeData?: CreativeData[];
   interactions?: VariableInteraction[];
+  simplified?: boolean;
 }) {
   const grouped = useMemo(() => {
     const map = new Map<string, VariablePerformance[]>();
@@ -83,20 +86,34 @@ export default function VariableExplorer({
   const proCoef = activeData[0]?.delta ? activeData[0].delta / 100 * 0.5 : undefined;
   const proPValue = isPro ? (activeData[0]?.confidence === "high" ? 0.02 : 0.08) : undefined;
 
+  // In simplified mode, force chart type to "bar" — no chart switcher
+  const effectiveChartType: ChartType = simplified ? "bar" : chartType;
+
   return (
     <div className="panel variable-explorer">
       <div className="between">
         <div>
-          <h3 className="panel-title">Variable explorer</h3>
+          <h3 className="panel-title">
+            {simplified ? "Explore one variable at a time" : "Variable explorer"}
+          </h3>
           <p className="panel-sub" style={{ marginBottom: 0 }}>
-            Select a variable to see how each value performs against{" "}
-            <strong>{METRIC_LABELS[metric]}</strong>.
-            {isPro && " Pick a chart type to view it in different ways."}
+            {simplified ? (
+              <>
+                Pick a variable below to see how each value of it stacks up on{" "}
+                <strong>{METRIC_PLAIN_NAME[metric]}</strong>.
+              </>
+            ) : (
+              <>
+                Select a variable to see how each value performs against{" "}
+                <strong>{METRIC_LABELS[metric]}</strong>.
+                {isPro && " Pick a chart type to view it in different ways."}
+              </>
+            )}
           </p>
         </div>
       </div>
 
-      {isPro && (
+      {isPro && !simplified && (
         <div className="mt-3">
           <ChartTypeSelector
             active={chartType}
@@ -114,24 +131,24 @@ export default function VariableExplorer({
             className={`var-pill ${activeVariable === name ? "active" : ""}`}
             onClick={() => setSelected(name)}
           >
-            {name.replace(/_/g, " ")}
+            {simplified ? getVariableCopy(name).plainName : name.replace(/_/g, " ")}
           </button>
         ))}
       </div>
 
       {/* Chart */}
       <div className="mt-3">
-        {chartType === "bar" && (
+        {effectiveChartType === "bar" && (
           <VariableChart data={activeData} metric={metric} />
         )}
-        {chartType === "scatter" && creativeData && (
+        {effectiveChartType === "scatter" && creativeData && (
           <ScatterChart
             data={creativeData}
             metric={metric}
             colorByVariable={activeVariable}
           />
         )}
-        {chartType === "regression" && creativeData && (
+        {effectiveChartType === "regression" && creativeData && (
           <RegressionChart
             data={creativeData}
             metric={metric}
@@ -139,13 +156,13 @@ export default function VariableExplorer({
             mockedPValue={proPValue}
           />
         )}
-        {chartType === "distribution" && creativeData && (
+        {effectiveChartType === "distribution" && creativeData && (
           <DistributionChart data={creativeData} metric={metric} />
         )}
-        {chartType === "heatmap" && heatmapInteraction && (
+        {effectiveChartType === "heatmap" && heatmapInteraction && (
           <HeatmapChart interaction={heatmapInteraction} metric={metric} />
         )}
-        {chartType === "heatmap" && !heatmapInteraction && (
+        {effectiveChartType === "heatmap" && !heatmapInteraction && (
           <div className="muted" style={{ padding: 24, textAlign: "center" }}>
             No interaction data available for this variable.
           </div>
@@ -153,7 +170,7 @@ export default function VariableExplorer({
       </div>
 
       {/* Mini stats row — only show for bar chart */}
-      {chartType === "bar" && bestRow && worstRow && (
+      {effectiveChartType === "bar" && bestRow && worstRow && (
         <div className="explorer-stats mt-3">
           <div className="explorer-stat">
             <span className="explorer-stat-label">Best performer</span>

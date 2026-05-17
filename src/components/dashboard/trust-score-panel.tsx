@@ -33,26 +33,51 @@ export type ModelStabilityInfo = {
   creativeCount: number;
 };
 
+function plainOverallExplain(score: number): string {
+  if (score >= 80) return "Excellent — your dataset is large and varied enough to trust these patterns confidently.";
+  if (score >= 60) return "Good — enough data to spot real patterns. Strong findings are worth acting on.";
+  if (score >= 40) return "Fair — patterns are emerging but treat them as hypotheses, not facts. More data would sharpen things up.";
+  return "Limited — you can still see directional hints, but don't make big decisions on this alone yet.";
+}
+
+const SUB_LABELS: Record<keyof TrustScore, string> = {
+  overall: "Overall",
+  creativeCount: "Number of creatives",
+  volumeScore: "How much they were shown",
+  mappingQuality: "Clean variable mapping",
+  dataCompleteness: "Data completeness",
+  bucketBalance: "Variety across variables",
+  level: "Level",
+};
+
 export default function TrustScorePanel({
   trustScore,
   modelStability,
+  simplified = false,
 }: {
   trustScore: TrustScore;
   modelStability?: ModelStabilityInfo;
+  simplified?: boolean;
 }) {
+  // Identify strong and weak sub-scores for the simplified prose blocks
+  const subKeys: (keyof TrustScore)[] = ["creativeCount", "volumeScore", "mappingQuality", "dataCompleteness", "bucketBalance"];
+  const strongSubs = subKeys.filter((k) => (trustScore[k] as number) >= 70);
+  const weakSubs = subKeys.filter((k) => (trustScore[k] as number) <= 50);
+
   return (
     <div className="panel">
       <div className="between">
         <div>
           <h3
             className="panel-title"
-            title="Trust score is gated by mapping quality, data completeness, and creative count. If any of these is low, the overall score reflects that. Volume and bucket balance contribute proportionally."
+            title={simplified ? undefined : "Trust score is gated by mapping quality, data completeness, and creative count. If any of these is low, the overall score reflects that. Volume and bucket balance contribute proportionally."}
           >
-            Dataset trust score
+            {simplified ? "How much to trust these results" : "Dataset trust score"}
           </h3>
           <p className="panel-sub" style={{ marginBottom: 0 }}>
-            Gated by mapping quality, data completeness, and creative count.
-            Lowest of those three caps the overall.
+            {simplified
+              ? "A combined score across dataset size, data cleanness, and variable variety."
+              : "Gated by mapping quality, data completeness, and creative count. Lowest of those three caps the overall."}
           </p>
         </div>
         <div
@@ -63,7 +88,7 @@ export default function TrustScorePanel({
             flexShrink: 0,
           }}
         >
-          {modelStability && (
+          {!simplified && modelStability && (
             <span
               className="badge mono"
               title={STABILITY_TOOLTIP}
@@ -107,28 +132,53 @@ export default function TrustScorePanel({
             </div>
           </div>
         </div>
-        <div className="trust-bars">
-          {SUB_SCORES.map(({ key, label }) => {
-            const score = trustScore[key] as number;
-            return (
-              <div key={key}>
-                <div className="trust-bar-label">
-                  <span>{label}</span>
-                  <span className="mono">{score}</span>
-                </div>
-                <div className="trust-bar-track">
-                  <div
-                    className="trust-bar-fill"
-                    style={{
-                      width: `${score}%`,
-                      background: trustColor(score),
-                    }}
-                  />
-                </div>
+        {simplified ? (
+          <div className="simple-prose-stack">
+            <div className="simple-prose-block">
+              <p className="simple-prose-eyebrow mono">What this means</p>
+              <p className="simple-prose-text">{plainOverallExplain(trustScore.overall)}</p>
+            </div>
+            {strongSubs.length > 0 && (
+              <div className="simple-prose-block simple-prose-good">
+                <p className="simple-prose-eyebrow mono">What&apos;s strong</p>
+                <p className="simple-prose-text">
+                  {strongSubs.map((k) => SUB_LABELS[k]).join(", ")}.
+                </p>
               </div>
-            );
-          })}
-        </div>
+            )}
+            {weakSubs.length > 0 && (
+              <div className="simple-prose-block simple-prose-warn">
+                <p className="simple-prose-eyebrow mono">What needs more data</p>
+                <p className="simple-prose-text">
+                  {weakSubs.map((k) => SUB_LABELS[k]).join(", ")}. These would benefit from more, more varied creatives.
+                </p>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="trust-bars">
+            {SUB_SCORES.map(({ key, label }) => {
+              const score = trustScore[key] as number;
+              return (
+                <div key={key}>
+                  <div className="trust-bar-label">
+                    <span>{label}</span>
+                    <span className="mono">{score}</span>
+                  </div>
+                  <div className="trust-bar-track">
+                    <div
+                      className="trust-bar-fill"
+                      style={{
+                        width: `${score}%`,
+                        background: trustColor(score),
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

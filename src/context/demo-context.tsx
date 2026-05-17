@@ -9,20 +9,25 @@ import {
 } from "react";
 import { generateDemoData, type DemoDataSet, type DemoMode } from "@/lib/demo-data";
 
+export type DashboardView = "simple" | "advanced";
+
 type DemoContextValue = {
   mode: DemoMode | null;
   data: DemoDataSet | null;
   setMode: (m: DemoMode) => void;
   clearMode: () => void;
+  viewMode: DashboardView;
+  setViewMode: (v: DashboardView) => void;
   isReady: boolean;
 };
 
 const DemoContext = createContext<DemoContextValue | null>(null);
 
 const STORAGE_KEY = "media-analyzer-demo-mode";
+const VIEW_STORAGE_KEY = "media-analyzer-demo-view";
 
 // External store subscription — fires when any localStorage write happens
-// in another tab. Calls notify() when the in-tab writer (setMode/clearMode)
+// in another tab. Calls notify() when the in-tab writer (setMode/clearMode/setViewMode)
 // dispatches a synthetic storage event for the current tab.
 const storageListeners = new Set<() => void>();
 
@@ -30,7 +35,7 @@ function subscribeToDemoMode(callback: () => void): () => void {
   if (typeof window === "undefined") return () => {};
   storageListeners.add(callback);
   const onStorage = (e: StorageEvent) => {
-    if (e.key === STORAGE_KEY || e.key === null) callback();
+    if (e.key === STORAGE_KEY || e.key === VIEW_STORAGE_KEY || e.key === null) callback();
   };
   window.addEventListener("storage", onStorage);
   return () => {
@@ -53,6 +58,16 @@ function getServerMode(): DemoMode | null {
   return null;
 }
 
+function getStoredView(): DashboardView {
+  if (typeof window === "undefined") return "simple";
+  const raw = window.localStorage.getItem(VIEW_STORAGE_KEY);
+  return raw === "advanced" ? "advanced" : "simple";
+}
+
+function getServerView(): DashboardView {
+  return "simple";
+}
+
 export function DemoProvider({ children }: { children: React.ReactNode }) {
   // React 19: use useSyncExternalStore instead of useEffect+setState for
   // external store subscriptions. This avoids the cascading-render warning
@@ -61,6 +76,12 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     subscribeToDemoMode,
     getStoredMode,
     getServerMode
+  );
+
+  const viewMode = useSyncExternalStore(
+    subscribeToDemoMode,
+    getStoredView,
+    getServerView
   );
 
   // isReady mirrors the "is the client hydrated yet?" flag the old effect
@@ -85,10 +106,16 @@ export function DemoProvider({ children }: { children: React.ReactNode }) {
     notifyDemoModeChanged();
   }, []);
 
+  const setViewMode = useCallback((v: DashboardView) => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(VIEW_STORAGE_KEY, v);
+    notifyDemoModeChanged();
+  }, []);
+
   const data = useMemo(() => (mode ? generateDemoData(mode) : null), [mode]);
 
   return (
-    <DemoContext.Provider value={{ mode, data, setMode, clearMode, isReady }}>
+    <DemoContext.Provider value={{ mode, data, setMode, clearMode, viewMode, setViewMode, isReady }}>
       {children}
     </DemoContext.Provider>
   );

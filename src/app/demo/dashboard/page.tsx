@@ -24,12 +24,16 @@ import CreativeGallery from "@/components/dashboard/creative-gallery";
 import InsightsPanel from "@/components/dashboard/insights-panel";
 import RegressionTable from "@/components/dashboard/regression-table";
 import InteractionMatrix from "@/components/dashboard/interaction-matrix";
+import ViewModeSwitcher from "@/components/dashboard/view-mode-switcher";
+import FindingCardsSimple from "@/components/dashboard/finding-cards-simple";
+import RecommendationsSimple from "@/components/dashboard/recommendations-simple";
+import HeadsUpCard from "@/components/dashboard/heads-up-card";
 
 const ENABLED_VARS_KEY = "media-analyzer-enabled-vars";
 const HYPOTHESIS_VARS_KEY = "media-analyzer-hypothesis-vars";
 
 function DashboardContent() {
-  const { data, mode } = useDemo();
+  const { data, mode, viewMode } = useDemo();
   const [metric, setMetric] = useState<MetricKey>("ctr");
 
   // React 19: useSyncExternalStore-backed localStorage hook (lib/use-local-storage)
@@ -60,20 +64,26 @@ function DashboardContent() {
 
   if (!data) return null;
   const isPro = mode === "pro";
+  const isSimple = isPro && viewMode === "simple";
   const payload = data.dashboards[metric];
 
   return (
     <div className="page" style={{ maxWidth: "1400px" }}>
-      <div className="page-head">
-        <p className="page-eyebrow">
-          Step 07 · Demo ({mode === "pro" ? "Pro" : "Lite"})
-        </p>
-        <h1 className="page-title">Dashboard</h1>
-        <p className="page-sub">
-          {isPro
-            ? "Full statistical analysis across 120 creatives. Switch chart types in the variable explorer, sort the regression table by significance, and drill into variable interactions."
-            : "Explore which creative variables correlate with better performance. Switch metrics, explore variables, and click creatives for detail."}
-        </p>
+      <div className="dashboard-header-row">
+        <div className="page-head">
+          <p className="page-eyebrow">
+            Step 07 · Demo ({mode === "pro" ? "Pro" : "Lite"})
+          </p>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-sub">
+            {isSimple
+              ? "Your creative performance, explained in plain English. Switch to Advanced for the full statistical view."
+              : isPro
+              ? "Full statistical analysis across 120 creatives. Switch chart types in the variable explorer, sort the regression table by significance, and drill into variable interactions."
+              : "Explore which creative variables correlate with better performance. Switch metrics, explore variables, and click creatives for detail."}
+          </p>
+        </div>
+        {isPro && <ViewModeSwitcher />}
       </div>
 
       <MetricSwitcher metric={metric} onChange={setMetric} />
@@ -85,12 +95,27 @@ function DashboardContent() {
         regressionThreshold={payload.regressionThreshold}
       />
 
+      {isSimple && (
+        <HeadsUpCard
+          trustScore={payload.trustScore}
+          variablePerformance={payload.variablePerformance}
+          creativeCount={payload.creativeCount}
+          regressionReady={payload.regressionReady}
+          regressionThreshold={payload.regressionThreshold}
+        />
+      )}
+
       <div className="dashboard-trust-metrics mb-2">
         <TrustScorePanel
           trustScore={payload.trustScore}
           modelStability={modelStability}
+          simplified={isSimple}
         />
-        <KeyMetricsPanel keyMetrics={payload.keyMetrics} metric={metric} />
+        <KeyMetricsPanel
+          keyMetrics={payload.keyMetrics}
+          metric={metric}
+          simplified={isSimple}
+        />
       </div>
 
       <VariableExplorer
@@ -99,40 +124,53 @@ function DashboardContent() {
         isPro={isPro}
         creativeData={data.creativeData}
         interactions={data.variableInteractions}
+        simplified={isSimple}
       />
 
-      {/* Pro-only: regression table */}
-      {isPro && data.regressionModels && (
+      {/* Pro-only AND not simplified: regression table */}
+      {isPro && !isSimple && data.regressionModels && (
         <RegressionTable
           model={data.regressionModels[metric]}
           hypothesisVariables={hypothesisVars}
         />
       )}
 
-      {/* Pro-only: interaction matrix */}
-      {isPro && data.variableInteractions && (
+      {/* Pro-only AND not simplified: interaction matrix */}
+      {isPro && !isSimple && data.variableInteractions && (
         <InteractionMatrix
           interactions={data.variableInteractions}
           metric={metric}
         />
       )}
 
-      <VariableTable
-        varPerf={payload.variablePerformance}
-        metric={metric}
-        hypothesisVariables={hypothesisVars}
-      />
+      {isSimple ? (
+        <FindingCardsSimple
+          varPerf={payload.variablePerformance}
+          metric={metric}
+        />
+      ) : (
+        <VariableTable
+          varPerf={payload.variablePerformance}
+          metric={metric}
+          hypothesisVariables={hypothesisVars}
+        />
+      )}
 
       <CreativeGallery
         gallery={payload.gallery}
         metric={metric}
         creativeData={data.creativeData}
+        simplified={isSimple}
       />
 
-      <InsightsPanel
-        insights={data.insights}
-        hypothesisVariables={hypothesisVars}
-      />
+      {isSimple ? (
+        <RecommendationsSimple insights={data.insights} />
+      ) : (
+        <InsightsPanel
+          insights={data.insights}
+          hypothesisVariables={hypothesisVars}
+        />
+      )}
 
       <div className="page-actions">
         <Link href="/demo/analysis" className="btn">← Back to analysis</Link>
