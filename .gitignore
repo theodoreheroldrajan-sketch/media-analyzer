@@ -34,8 +34,7 @@ yarn-error.log*
 .env
 .env*.local
 
-# keep the examples visible
-!.env.local.example
+# keep the example visible
 !.env.example
 
 # vercel
