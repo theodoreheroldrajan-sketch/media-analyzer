@@ -103,7 +103,7 @@ async function analyseCreative(
   const start = Date.now();
 
   const response = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20241022",
+    model: "claude-haiku-4-5-20251001",
     max_tokens: 2048,
     tools: [tool],
     tool_choice: { type: "tool", name: "extract_creative_variables" },
