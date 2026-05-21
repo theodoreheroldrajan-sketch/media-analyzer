@@ -57,39 +57,23 @@ Plan: wait for Next.js to bump its bundled PostCSS version (the fix is already p
 
 Resolved in PR #21. `withRetry` with exponential backoff (2 attempts, 1s base) now wraps each per-image Anthropic call. Transient errors (429, 5xx, network timeouts) are retried automatically. A `pMap` concurrency pool (5 workers) prevents rate-limit storms. Client errors (400, 401, 404) still fail immediately.
 
-### No protection against concurrent extraction runs
+### ~~No protection against concurrent extraction runs~~ (Resolved)
 
-Two browser tabs triggering `/api/analysis` for the same project simultaneously would both write to `extraction_results` and `analysis_runs` without an advisory lock. Cost duplication is possible.
+Resolved in PR #22. The POST handler checks for an active run (`status = 'running'` started within 15 minutes) before creating a new one. Returns 409 Conflict if a run is already in progress.
 
-Why it matters: at single-operator scale, this is unlikely. If anyone forks for multi-tenant or shares an instance with a colleague, it becomes a real cost surprise risk.
+### ~~No cleanup for stuck extraction runs~~ (Resolved)
 
-Open. A guard refusing a new run if `analysis_runs.status = 'running'` for the project within the last 10 minutes would resolve it. Contribution-friendly.
-
-### No cleanup for stuck extraction runs
-
-If the streaming extraction process is killed mid-batch (Vercel function timeout, server restart, dropped connection), the `analysis_runs` row remains in `status = 'running'` permanently. There is no janitor process. The dashboard may try to read partial `extraction_results`.
-
-Why it matters: the project becomes inoperable from the operator's view; the dashboard shows partial data or refuses to render. Workaround: delete and recreate the project.
-
-Open. A "stuck run" heuristic (`status = 'running' AND started_at < now() - interval '15 minutes' → mark failed`) run either on dashboard load or as a Vercel cron job would resolve it. Contribution-friendly.
+Resolved in PR #22. The GET handler auto-detects runs stuck in `status = 'running'` for more than 15 minutes and marks them as `failed`. No cron job needed — cleanup happens on dashboard load.
 
 ## 3. Data integrity gaps
 
-### 10MB image cap is advertised but not enforced server-side
+### ~~10MB image cap is advertised but not enforced server-side~~ (Resolved)
 
-The upload page help text says "10MB each" but no code (client or server) validates file size. Supabase Storage enforces an absolute object size limit, but a 50MB PNG would still consume bandwidth before being rejected upstream.
+Resolved in PR #23. `uploadCreative()` in `src/lib/upload.ts` now checks `file.size > 10 * 1024 * 1024` before uploading to Supabase Storage. Oversized files are rejected client-side with a clear error message including the filename and actual size.
 
-Why it matters: cost surprise on egress; a careless operator can drive Supabase bills.
+### ~~No CSV all-zero-row rejection~~ (Resolved)
 
-Open. Trivial fix: add `if (file.size > 10 * 1024 * 1024) reject` in `src/lib/upload.ts`. Listed for the next maintenance pass.
-
-### No CSV all-zero-row rejection
-
-`src/lib/upload.ts` does not reject rows where every metric column is 0 or null. A header row mistakenly included as data lands in `performance_rows`. The volume-weighted aggregation in `analytics.ts` ignores those rows in group computations, but they still inflate the `creativeCount` sub-score of the trust score.
-
-Why it matters: trust score over-reports creative count. Cosmetic, but it undermines the score's premise.
-
-Open. Trivial fix at parse time. Listed for the next maintenance pass.
+Resolved in PR #23. The `upload-csv` API route now filters out rows where all five metric columns (impressions, clicks, spend, conversions, revenue) are 0 or null before inserting into `performance_rows`. The response includes a `skippedRows` count so the client knows how many rows were filtered.
 
 ### Missing values silently excluded
 
