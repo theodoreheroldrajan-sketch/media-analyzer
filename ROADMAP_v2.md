@@ -27,7 +27,7 @@ This roadmap does not duplicate them. It points to them where relevant.
 **Architecture.**
 
 - Next.js 16.2.6 (App Router, Turbopack) on Vercel Hobby.
-- TypeScript 5.9.3, React 19.2.4, Tailwind 4.
+- TypeScript 5.9.3, React 19.2.6, Tailwind 4.
 - Supabase Postgres (eu-west-2) with 9 tables and a `creatives` storage bucket.
 - Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) via Anthropic SDK with forced tool_use.
 - Streaming NDJSON over Node.js runtime.

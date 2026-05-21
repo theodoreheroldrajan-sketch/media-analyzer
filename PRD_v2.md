@@ -153,9 +153,7 @@ These are deliberate omissions, not future work.
 
 **Optional advanced modelling.** Mixed-effects models for campaign-nested data, Bayesian regression for small-sample uncertainty, tree-based methods (random forests, gradient boosting) with SHAP for interpretability. Explored only if real datasets justify the complexity.
 
-**Operational hardening.** Retry logic for transient Anthropic API failures, concurrency guards for simultaneous extraction runs, cleanup for stuck or partial extractions, server-side enforcement of the 10MB file cap, CSV all-zero-row validation. Small in isolation; contribution-friendly. Each one is a clean PR.
-
-**Multi-tenant fork (separate codebase).** Supabase Auth + Row Level Security scoped per user, shared workspaces, comments, audit trails, role-based permissions. Not on this repo's roadmap; this is what a fork would need to add if anyone wants to run the tool as a multi-user product.
+**Multi-tenant fork (separate codebase).** Supabase Auth + Row Level Security scoped per user, shared workspaces, comments, audit trails, role-based permissions. Not on this repo's roadmap; this is what a fork would need to add if anyone wants to run the tool as a multi-user product. (The single-operator operational baseline — retry on transient Anthropic failures, concurrency guard, stuck-run cleanup, 10MB image cap enforcement, CSV all-zero-row rejection — shipped in PRs #21–#23 and is no longer pending.)
 
 ## 11. Limitations summary
 
@@ -163,9 +161,9 @@ A condensed view of what the tool cannot do or does silently differently from th
 
 **Methodological.** No hypothesis testing in Lite (descriptive only). No interaction effects in Lite (each variable analysed independently). Confidence label ignores impression volume: n=3 with 300k impressions each is labelled "low" even though it has more statistical power than n=10 with 1k impressions each. Pro statistics in the demo are mocked. Everything is correlational.
 
-**Reliability.** No retry on transient Anthropic API failures (a 1% failure rate loses 2 creatives in a 200-creative batch; workaround is re-running extraction on the project). No concurrency guard between two simultaneous extraction runs on the same project. No cleanup for stuck `analysis_runs` rows after timeout or crash; the workaround is delete-and-recreate the project. All three are contribution-friendly.
+**Reliability.** Transient Anthropic API failures retry with exponential backoff (2 attempts, 1s base) inside a 5-worker concurrency pool (PR #21–#22). Simultaneous extraction runs on the same project are blocked: the second returns 409 if a run started within the last 15 minutes is still in `running` state. Stuck `analysis_runs` rows auto-fail after 15 minutes on the next dashboard load (PR #22). Transitive PostCSS XSS advisory present in `npm audit` is not exploitable in this deployment (PostCSS runs only at build time, no user input reaches CSS stringification); see `LIMITATIONS.md` §2.
 
-**Data integrity.** 10MB image cap is advertised but not server-enforced. CSV rows with all-zero metrics are not rejected (inflates the trust score's creative-count component). Missing values silently excluded from each variable's group computation without a per-variable missing-count surface.
+**Data integrity.** 10MB image cap enforced client-side in `src/lib/upload.ts` (PR #23). CSV rows with all-zero metrics are filtered server-side in the upload route with a `skippedRows` count returned to the client (PR #23). Missing values are still silently excluded from each variable's group computation without a per-variable missing-count surface — open and contribution-friendly.
 
 **Access and security.** UUID-based project access: anyone with a project URL has full destructive access. This is the design for single-operator self-host. Multi-tenant deployments need a fork with proper auth.
 
