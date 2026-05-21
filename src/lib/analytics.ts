@@ -8,6 +8,8 @@
  * Multiple regression analysis unlocks at 100+ creatives.
  */
 
+import { createRng } from "./rng";
+
 export type MetricKey = "ctr" | "cpc" | "cpa" | "cvr" | "roas";
 
 export type CreativeData = {
@@ -188,12 +190,17 @@ export function computeKeyMetrics(data: CreativeData[]): KeyMetrics {
 
 /**
  * Resample an array with replacement (bootstrap sampling).
+ * When an rng is provided, sampling is deterministic.
  */
-function resampleWithReplacement<T>(arr: T[], n: number): T[] {
+function resampleWithReplacement<T>(
+  arr: T[],
+  n: number,
+  rng?: { next(): number }
+): T[] {
   const out: T[] = new Array(n);
   const len = arr.length;
   for (let i = 0; i < n; i++) {
-    out[i] = arr[Math.floor(Math.random() * len)];
+    out[i] = arr[Math.floor((rng ? rng.next() : Math.random()) * len)];
   }
   return out;
 }
@@ -209,13 +216,15 @@ function bootstrapDeltaCI(
   group: CreativeData[],
   overall: CreativeData[],
   metric: MetricKey,
-  iterations = 1000
+  iterations = 1000,
+  seed?: number
 ): { lower95: number; upper95: number } {
+  const rng = seed !== undefined ? createRng(seed) : undefined;
   const deltas: number[] = new Array(iterations);
 
   for (let i = 0; i < iterations; i++) {
-    const groupSample = resampleWithReplacement(group, group.length);
-    const overallSample = resampleWithReplacement(overall, overall.length);
+    const groupSample = resampleWithReplacement(group, group.length, rng);
+    const overallSample = resampleWithReplacement(overall, overall.length, rng);
     const g = getMetricValue(groupSample, metric);
     const o = getMetricValue(overallSample, metric);
     deltas[i] = o !== 0 ? ((g - o) / o) * 100 : 0;
@@ -263,7 +272,8 @@ function getMetricValue(
 export function computeVariablePerformance(
   data: CreativeData[],
   variableNames: string[],
-  metric: MetricKey
+  metric: MetricKey,
+  seed?: number
 ): VariablePerformance[] {
   if (data.length === 0) return [];
 
@@ -309,7 +319,7 @@ export function computeVariablePerformance(
       let delta95Lower = delta;
       let delta95Upper = delta;
       if (confidence !== "insufficient") {
-        const ci = bootstrapDeltaCI(group, data, metric, 1000);
+        const ci = bootstrapDeltaCI(group, data, metric, 1000, seed);
         delta95Lower = ci.lower95;
         delta95Upper = ci.upper95;
       }

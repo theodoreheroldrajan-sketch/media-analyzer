@@ -296,7 +296,7 @@ describe("computeVariablePerformance", () => {
       ),
     ];
 
-    const results = computeVariablePerformance(data, ["color"], "ctr");
+    const results = computeVariablePerformance(data, ["color"], "ctr", 42);
 
     const red = results.find((r) => r.value === "red");
     const blue = results.find((r) => r.value === "blue");
@@ -307,6 +307,40 @@ describe("computeVariablePerformance", () => {
     expect(blue!.delta).toBeLessThan(0); // blue underperforms overall
     expect(red!.count).toBe(5);
     expect(blue!.count).toBe(5);
+  });
+
+  it("produces deterministic CIs with a seed", () => {
+    // Use varied data so bootstrap resamples differ across seeds
+    const data: CreativeData[] = [
+      ...Array.from({ length: 10 }, (_, i) =>
+        makeCreative({
+          creativeId: `a-${i}`,
+          impressions: 500 + i * 200,
+          clicks: 30 + i * 10,
+          extractedVariables: { color: "red" },
+        })
+      ),
+      ...Array.from({ length: 10 }, (_, i) =>
+        makeCreative({
+          creativeId: `b-${i}`,
+          impressions: 600 + i * 150,
+          clicks: 10 + i * 3,
+          extractedVariables: { color: "blue" },
+        })
+      ),
+    ];
+
+    const run1 = computeVariablePerformance(data, ["color"], "ctr", 123);
+    const run2 = computeVariablePerformance(data, ["color"], "ctr", 123);
+
+    // Same seed produces identical results
+    expect(run1).toEqual(run2);
+
+    // Different seed produces different CIs (with varied data)
+    const run3 = computeVariablePerformance(data, ["color"], "ctr", 456);
+    const red1 = run1.find((r) => r.value === "red")!;
+    const red3 = run3.find((r) => r.value === "red")!;
+    expect(red1.delta95Lower).not.toEqual(red3.delta95Lower);
   });
 
   it("assigns confidence levels based on sample size", () => {
@@ -341,7 +375,7 @@ describe("computeVariablePerformance", () => {
       ),
     ];
 
-    const results = computeVariablePerformance(data, ["tag"], "ctr");
+    const results = computeVariablePerformance(data, ["tag"], "ctr", 42);
 
     const byValue = Object.fromEntries(results.map((r) => [r.value, r]));
     expect(byValue["rare"].confidence).toBe("insufficient");
@@ -360,7 +394,7 @@ describe("computeVariablePerformance", () => {
       })
     );
 
-    const results = computeVariablePerformance(data, ["split"], "ctr");
+    const results = computeVariablePerformance(data, ["split"], "ctr", 42);
 
     for (const r of results) {
       // CI should have nonzero width (bootstrap introduces variance)
