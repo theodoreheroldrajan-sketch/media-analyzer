@@ -19,3 +19,16 @@ export function getSupabase(): SupabaseClient<Database> {
   return _supabase;
 }
 
+/**
+ * Server-side Supabase client. Uses the service-role key when available,
+ * falling back to the anon key. Do not import this from client components.
+ */
+export function getServerSupabase(): SupabaseClient<Database> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ??
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error("Missing Supabase environment variables");
+  return createClient<Database>(url, key);
+}
+
