@@ -307,134 +307,150 @@ export async function POST(request: NextRequest) {
           );
         };
 
-        send({
-          type: "start",
-          runId: run.id,
-          total: creatives.length,
-          variables: enabledCount,
-        });
+        try {
+          send({
+            type: "start",
+            runId: run.id,
+            total: creatives.length,
+            variables: enabledCount,
+          });
 
-        let completed = 0;
-        let failed = 0;
-        let totalInputTokens = 0;
-        let totalOutputTokens = 0;
-        let totalCost = 0;
+          let completed = 0;
+          let failed = 0;
+          let totalInputTokens = 0;
+          let totalOutputTokens = 0;
+          let totalCost = 0;
 
-        // Haiku 4.5 pricing: $0.80/M input, $4.00/M output
-        const INPUT_COST_PER_TOKEN = 0.8 / 1_000_000;
-        const OUTPUT_COST_PER_TOKEN = 4.0 / 1_000_000;
+          // Haiku 4.5 pricing: $0.80/M input, $4.00/M output
+          const INPUT_COST_PER_TOKEN = 0.8 / 1_000_000;
+          const OUTPUT_COST_PER_TOKEN = 4.0 / 1_000_000;
 
-        // Process creatives concurrently (5 workers) with retry on transient errors
-        await pMap(
-          creatives,
-          async (creative) => {
-            try {
-              const result = await withRetry(() =>
-                analyseCreative(
-                  anthropic,
-                  getImageUrl(creative.storage_path),
-                  tool,
-                  brandContext
-                )
-              );
+          // Process creatives concurrently (5 workers) with retry on transient errors
+          await pMap(
+            creatives,
+            async (creative) => {
+              try {
+                const result = await withRetry(() =>
+                  analyseCreative(
+                    anthropic,
+                    getImageUrl(creative.storage_path),
+                    tool,
+                    brandContext
+                  )
+                );
 
-              const cost =
-                result.inputTokens * INPUT_COST_PER_TOKEN +
-                result.outputTokens * OUTPUT_COST_PER_TOKEN;
+                const cost =
+                  result.inputTokens * INPUT_COST_PER_TOKEN +
+                  result.outputTokens * OUTPUT_COST_PER_TOKEN;
 
-              await supabase.from("extraction_results").insert({
-                run_id: run.id,
-                creative_id: creative.id,
-                extracted_variables: result.extracted,
-                input_tokens: result.inputTokens,
-                output_tokens: result.outputTokens,
-                cost,
-                duration_ms: result.durationMs,
-                status: "completed",
-              });
+                await supabase.from("extraction_results").insert({
+                  run_id: run.id,
+                  creative_id: creative.id,
+                  extracted_variables: result.extracted,
+                  input_tokens: result.inputTokens,
+                  output_tokens: result.outputTokens,
+                  cost,
+                  duration_ms: result.durationMs,
+                  status: "completed",
+                });
 
-              completed++;
-              totalInputTokens += result.inputTokens;
-              totalOutputTokens += result.outputTokens;
-              totalCost += cost;
+                completed++;
+                totalInputTokens += result.inputTokens;
+                totalOutputTokens += result.outputTokens;
+                totalCost += cost;
 
-              send({
-                type: "progress",
-                creativeId: creative.id,
-                filename: creative.filename,
-                completed,
-                failed,
-                total: creatives.length,
-                inputTokens: result.inputTokens,
-                outputTokens: result.outputTokens,
-                cost: Math.round(cost * 10000) / 10000,
-                totalCost: Math.round(totalCost * 10000) / 10000,
-                durationMs: result.durationMs,
-                extracted: result.extracted,
-              });
-            } catch (err) {
-              failed++;
-              const errorMsg =
-                err instanceof Error ? err.message : "Unknown error";
+                send({
+                  type: "progress",
+                  creativeId: creative.id,
+                  filename: creative.filename,
+                  completed,
+                  failed,
+                  total: creatives.length,
+                  inputTokens: result.inputTokens,
+                  outputTokens: result.outputTokens,
+                  cost: Math.round(cost * 10000) / 10000,
+                  totalCost: Math.round(totalCost * 10000) / 10000,
+                  durationMs: result.durationMs,
+                  extracted: result.extracted,
+                });
+              } catch (err) {
+                failed++;
+                const errorMsg =
+                  err instanceof Error ? err.message : "Unknown error";
 
-              await supabase.from("extraction_results").insert({
-                run_id: run.id,
-                creative_id: creative.id,
-                extracted_variables: {},
-                status: "failed",
-                error_message: errorMsg,
-              });
+                await supabase.from("extraction_results").insert({
+                  run_id: run.id,
+                  creative_id: creative.id,
+                  extracted_variables: {},
+                  status: "failed",
+                  error_message: errorMsg,
+                });
 
-              send({
-                type: "error",
-                creativeId: creative.id,
-                filename: creative.filename,
-                error: errorMsg,
-                completed,
-                failed,
-                total: creatives.length,
-              });
-            }
+                send({
+                  type: "error",
+                  creativeId: creative.id,
+                  filename: creative.filename,
+                  error: errorMsg,
+                  completed,
+                  failed,
+                  total: creatives.length,
+                });
+              }
 
-            // Batch progress updates: every 5 creatives or on the last one
-            const processed = completed + failed;
-            if (processed % 5 === 0 || processed === creatives.length) {
-              await supabase
-                .from("analysis_runs")
-                .update({
-                  completed_creatives: completed,
-                  failed_creatives: failed,
-                  total_input_tokens: totalInputTokens,
-                  total_output_tokens: totalOutputTokens,
-                  total_cost: totalCost,
-                })
-                .eq("id", run.id);
-            }
-          },
-          5
-        );
+              // Batch progress updates: every 5 creatives or on the last one
+              const processed = completed + failed;
+              if (processed % 5 === 0 || processed === creatives.length) {
+                await supabase
+                  .from("analysis_runs")
+                  .update({
+                    completed_creatives: completed,
+                    failed_creatives: failed,
+                    total_input_tokens: totalInputTokens,
+                    total_output_tokens: totalOutputTokens,
+                    total_cost: totalCost,
+                  })
+                  .eq("id", run.id);
+              }
+            },
+            5
+          );
 
-        // Mark run as completed
-        await supabase
-          .from("analysis_runs")
-          .update({
-            status: failed === creatives.length ? "failed" : "completed",
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", run.id);
+          // Mark run as completed
+          await supabase
+            .from("analysis_runs")
+            .update({
+              status: failed === creatives.length ? "failed" : "completed",
+              completed_at: new Date().toISOString(),
+            })
+            .eq("id", run.id);
 
-        send({
-          type: "done",
-          runId: run.id,
-          completed,
-          failed,
-          total: creatives.length,
-          totalInputTokens,
-          totalOutputTokens,
-          totalCost: Math.round(totalCost * 10000) / 10000,
-        });
-
-        controller.close();
+          send({
+            type: "done",
+            runId: run.id,
+            completed,
+            failed,
+            total: creatives.length,
+            totalInputTokens,
+            totalOutputTokens,
+            totalCost: Math.round(totalCost * 10000) / 10000,
+          });
+        } catch (err) {
+          try {
+            send({
+              type: "stream_error",
+              error:
+                err instanceof Error ? err.message : "Unknown stream error",
+            });
+          } catch {
+            // Controller may already be closed
+          }
+        } finally {
+          try {
+            controller.close();
+          } catch {
+            // Already closed
+          }
+        }
       },
     });
 
