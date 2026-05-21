@@ -56,6 +56,16 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ANTHROPIC_API_KEY=your-anthropic-api-key
 ```
 
+## Security note
+
+The API routes have no authentication layer. This is by design for single-operator self-host (see [LIMITATIONS.md](../LIMITATIONS.md) for details). If you deploy to a public URL, anyone who discovers it can trigger paid Anthropic API calls using your key.
+
+Options:
+
+- Deploy to a private URL (Vercel password protection, VPN, or localhost only)
+- Add a shared-secret middleware yourself (check a `Bearer` token from an env var)
+- Use Vercel's built-in authentication if on a Pro plan
+
 ## 6. Run it
 
 **Local development:**
