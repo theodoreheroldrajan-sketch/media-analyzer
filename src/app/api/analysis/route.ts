@@ -6,6 +6,19 @@ import { getServerSupabase } from "@/lib/supabase";
 // Streaming response bypasses Vercel's 10s timeout — no edge runtime needed.
 // (Edge runtime can't use the Anthropic SDK due to node:fs/node:path deps.)
 
+// ── Configuration (overridable via env vars) ─────────────────────
+const ANALYSIS_MODEL =
+  process.env.ANALYSIS_MODEL || "claude-haiku-4-5-20251001";
+const ANALYSIS_CONCURRENCY = parseInt(
+  process.env.ANALYSIS_CONCURRENCY || "5",
+  10
+);
+
+// Haiku 4.5 pricing: $0.80/M input, $4.00/M output
+// Update these when Anthropic changes model pricing.
+const INPUT_COST_PER_TOKEN = 0.8 / 1_000_000;
+const OUTPUT_COST_PER_TOKEN = 4.0 / 1_000_000;
+
 function getAnthropic() {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw new Error("Missing ANTHROPIC_API_KEY environment variable");
@@ -145,7 +158,7 @@ async function analyseCreative(
   const start = Date.now();
 
   const response = await anthropic.messages.create({
-    model: "claude-haiku-4-5-20251001",
+    model: ANALYSIS_MODEL,
     max_tokens: 2048,
     tools: [tool],
     tool_choice: { type: "tool", name: "extract_creative_variables" },
@@ -345,10 +358,6 @@ export async function POST(request: NextRequest) {
           let totalOutputTokens = 0;
           let totalCost = 0;
 
-          // Haiku 4.5 pricing: $0.80/M input, $4.00/M output
-          const INPUT_COST_PER_TOKEN = 0.8 / 1_000_000;
-          const OUTPUT_COST_PER_TOKEN = 4.0 / 1_000_000;
-
           // Process creatives concurrently (5 workers) with retry on transient errors
           await pMap(
             creatives,
@@ -436,7 +445,7 @@ export async function POST(request: NextRequest) {
                   .eq("id", run.id);
               }
             },
-            5
+            ANALYSIS_CONCURRENCY
           );
 
           // Mark run as completed
