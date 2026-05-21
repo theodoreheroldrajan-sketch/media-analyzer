@@ -49,15 +49,9 @@ See [ROADMAP_v2.md](ROADMAP_v2.md) section 6.1 for the full list.
 
 The tool has only been tested against generated demo data. If you are a performance marketer with a real paid-campaign dataset (50+ creatives with performance CSV), running the tool against real data and reporting what works and what breaks is the single most valuable contribution right now. The production OLS backend (Pro mode) is designed but gated on the first real 100+ creative dataset. See [ROADMAP_v2.md](ROADMAP_v2.md) section 6.2.
 
-**Operational hardening (contribution-friendly):**
+**Operational hardening.**
 
-- Retry logic for transient Anthropic API failures.
-- Concurrency guard for simultaneous extraction runs.
-- Cleanup heuristic for stuck `analysis_runs` rows.
-- Server-side enforcement of the 10MB image cap.
-- CSV all-zero-row rejection at parse time.
-
-Each of these is a clean, self-contained PR. See [ROADMAP_v2.md](ROADMAP_v2.md) section 6.4.
+The single-operator operational baseline (retry on transient Anthropic failures, concurrency guard, stuck-run cleanup, 10MB image cap, CSV all-zero-row rejection) shipped in PRs #21–#23. What remains in [ROADMAP_v2.md](ROADMAP_v2.md) section 6.4 is the multi-tenant baseline — relevant only if you fork for multi-user use.
 
 **Multi-tenant fork territory:**
 

@@ -29,7 +29,7 @@ This roadmap does not duplicate them. It points to them where relevant.
 - Next.js 16.2.6 (App Router, Turbopack) on Vercel Hobby.
 - TypeScript 5.9.3, React 19.2.4, Tailwind 4.
 - Supabase Postgres (eu-west-2) with 9 tables and a `creatives` storage bucket.
-- Claude Haiku 4.5 (`claude-haiku-4-5-20241022`) via Anthropic SDK with forced tool_use.
+- Claude Haiku 4.5 (`claude-haiku-4-5-20251001`) via Anthropic SDK with forced tool_use.
 - Streaming NDJSON over Node.js runtime.
 - GitHub Actions CI gating every PR to main (tsc, eslint, next build).
 
@@ -72,6 +72,12 @@ Items that landed since the roadmap v1 was written, in rough chronological order
 - Deploy-to-Vercel button.
 - PRD, LIMITATIONS, Methodology, and this roadmap reframed for open-source / public-iteration posture.
 - Build journey audit files moved to `docs/build-journey/`.
+
+**Audit cycle 3 (post-repositioning self-audit, PRs #21–#23).** Comprehensive review against the open-source repo state; fixes shipped without waiting for real test data.
+
+- PR #21: Anthropic model ID correction, Supabase storage dedup, auth warning fix, initial Vitest suite (4 findings).
+- PR #22: `withRetry` (2 attempts, exponential backoff) and `pMap` concurrency pool (5 workers, configurable via `ANALYSIS_CONCURRENCY`) on the Anthropic extraction path; streaming handler wrapped in try-catch-finally with a `stream_error` event; CSV row cap (`MAX_ROWS = 10_000`, returns 413); concurrency guard on `/api/analysis` POST (409 if an active run < 15 min exists); auto-cleanup of runs stuck in `running` > 15 min on dashboard load; dashboard metric query-param validation; stale-closure fix in `analysis/page.tsx`; `npm test` step added to CI workflow; module-scope pricing constants; `.env.example` extended with optional `ANALYSIS_MODEL` and `ANALYSIS_CONCURRENCY` (9 fixes).
+- PR #23: xorshift32 PRNG extracted to shared `src/lib/rng.ts` and threaded as optional `seed` through bootstrap CIs (deterministic tests; production unchanged); 10MB image upload cap enforced in `src/lib/upload.ts`; all-zero-metric CSV rows filtered server-side with `skippedRows` count in the response; `LIMITATIONS.md` updated to mark 4 more items as resolved (4 fixes).
 
 ## 4. Build journey (preserved from v1)
 
@@ -160,7 +166,7 @@ These only matter if someone wants to take the codebase beyond single-operator s
 
 **Advanced modelling.** Mixed-effects models for campaign-nested data. Bayesian regression for small-sample uncertainty. Tree-based methods (random forests, gradient boosting) with SHAP for interpretability. Only worth building if real data justifies the complexity.
 
-**Operational hardening.** Retry logic for transient Anthropic API failures. Concurrency guards for simultaneous extraction runs. Cleanup for stuck or partial extractions. Server-side enforcement of the 10MB file cap. CSV all-zero-row validation. Each is small in isolation; together they constitute the operational baseline for multi-user production. Note: each of these is also welcome as a contribution to *this* repo even if you are not forking, because they improve single-operator robustness too. The reason they sit here rather than in §6.1 is that the value of fixing them scales sharply with multi-tenant use.
+**Operational hardening.** The single-operator baseline (retry on transient Anthropic failures, concurrency guard, stuck-run cleanup, 10MB image cap, CSV all-zero-row rejection) shipped in PRs #21–#23 — see §3. What remains here is the multi-tenant baseline: per-tenant rate limits, request quotas, audit logging of extraction runs, billing-grade cost telemetry per project, and tenant-scoped concurrency pools rather than the current process-global pool.
 
 **Resumable extraction.** Current practical batch ceiling is ~150 to 200 creatives per run on Vercel Hobby. Batching and resumable runs become necessary above that.
 

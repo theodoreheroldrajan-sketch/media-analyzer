@@ -74,36 +74,63 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Insert performance rows in batches of 100
+    // 4. Filter out rows where all metric columns are zero or null.
+    //    Keep extraColumns aligned by pairing with original index.
+    const METRIC_KEYS = [
+      "impressions",
+      "clicks",
+      "spend",
+      "conversions",
+      "revenue",
+    ] as const;
+    const validEntries: {
+      row: (typeof rows)[number];
+      extra: Record<string, unknown>;
+    }[] = [];
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      const hasMetric = METRIC_KEYS.some((k) => {
+        const v = row[k];
+        return v !== null && v !== undefined && v !== 0 && v !== "0";
+      });
+      if (hasMetric) {
+        validEntries.push({ row, extra: extraColumns[i] ?? {} });
+      }
+    }
+    const skippedRows = rows.length - validEntries.length;
+
+    // 5. Insert performance rows in batches of 100
     const BATCH_SIZE = 100;
     let insertedCount = 0;
     const errors: string[] = [];
 
-    for (let i = 0; i < rows.length; i += BATCH_SIZE) {
-      const batch = rows.slice(i, i + BATCH_SIZE).map((row, idx) => ({
-        upload_id: upload.id,
-        project_id: projectId,
-        source_filename: (row.source_filename as string) ?? null,
-        source_creative_id: (row.source_creative_id as string) ?? null,
-        source_ad_id: (row.source_ad_id as string) ?? null,
-        source_asset_id: (row.source_asset_id as string) ?? null,
-        source_ad_name: (row.source_ad_name as string) ?? null,
-        source_creative_name: (row.source_creative_name as string) ?? null,
-        impressions: row.impressions as number | null,
-        clicks: row.clicks as number | null,
-        spend: row.spend as number | null,
-        conversions: row.conversions as number | null,
-        revenue: row.revenue as number | null,
-        date_start: (row.date_start as string) ?? null,
-        date_end: (row.date_end as string) ?? null,
-        campaign_name: (row.campaign_name as string) ?? null,
-        adset_name: (row.adset_name as string) ?? null,
-        platform: (row.platform as string) ?? null,
-        placement: (row.placement as string) ?? null,
-        snapshot_number: snapshotNumber,
-        is_latest: true,
-        extra_columns: extraColumns[i + idx] ?? {},
-      }));
+    for (let i = 0; i < validEntries.length; i += BATCH_SIZE) {
+      const batch = validEntries
+        .slice(i, i + BATCH_SIZE)
+        .map(({ row, extra }) => ({
+          upload_id: upload.id,
+          project_id: projectId,
+          source_filename: (row.source_filename as string) ?? null,
+          source_creative_id: (row.source_creative_id as string) ?? null,
+          source_ad_id: (row.source_ad_id as string) ?? null,
+          source_asset_id: (row.source_asset_id as string) ?? null,
+          source_ad_name: (row.source_ad_name as string) ?? null,
+          source_creative_name: (row.source_creative_name as string) ?? null,
+          impressions: row.impressions as number | null,
+          clicks: row.clicks as number | null,
+          spend: row.spend as number | null,
+          conversions: row.conversions as number | null,
+          revenue: row.revenue as number | null,
+          date_start: (row.date_start as string) ?? null,
+          date_end: (row.date_end as string) ?? null,
+          campaign_name: (row.campaign_name as string) ?? null,
+          adset_name: (row.adset_name as string) ?? null,
+          platform: (row.platform as string) ?? null,
+          placement: (row.placement as string) ?? null,
+          snapshot_number: snapshotNumber,
+          is_latest: true,
+          extra_columns: extra,
+        }));
 
       const { error: batchError } = await supabase
         .from("performance_rows")
@@ -121,6 +148,7 @@ export async function POST(request: NextRequest) {
       snapshotNumber,
       insertedRows: insertedCount,
       totalRows: rows.length,
+      skippedRows,
       errors: errors.length > 0 ? errors : undefined,
     });
   } catch (err) {
