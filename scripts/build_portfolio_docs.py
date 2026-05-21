@@ -661,7 +661,7 @@ def build_roadmap():
         "Next.js 16.2.6 (App Router, Turbopack) on Vercel Hobby",
         "TypeScript 5.9.3, React 19.2.6, Tailwind 4",
         "Supabase Postgres (eu-west-2) with 9 tables and a creatives storage bucket",
-        "Claude Haiku 4.5 (<font face=\"Courier\">claude-haiku-4-5-20241022</font>) via Anthropic SDK with forced tool_use",
+        "Claude Haiku 4.5 (<font face=\"Courier\">claude-haiku-4-5-20251001</font>) via Anthropic SDK with forced tool_use",
         "Streaming NDJSON over Node.js runtime",
         "GitHub Actions CI gating every PR to main (tsc, eslint, next build)",
     ]))
