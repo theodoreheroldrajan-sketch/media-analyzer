@@ -275,6 +275,30 @@ export async function POST(request: NextRequest) {
     const tool = buildExtractionTool(variables);
     const enabledCount = variables.filter((v) => v.enabled).length;
 
+    // ── Concurrency guard: reject if a run is already in progress ──
+    const fifteenMinutesAgo = new Date(
+      Date.now() - 15 * 60 * 1000
+    ).toISOString();
+    const { data: activeRun } = await supabase
+      .from("analysis_runs")
+      .select("id, started_at")
+      .eq("project_id", projectId)
+      .eq("status", "running")
+      .gte("started_at", fifteenMinutesAgo)
+      .limit(1)
+      .maybeSingle();
+
+    if (activeRun) {
+      return NextResponse.json(
+        {
+          error:
+            "An analysis run is already in progress. Please wait for it to complete or try again after 15 minutes.",
+          activeRunId: activeRun.id,
+        },
+        { status: 409 }
+      );
+    }
+
     // Create analysis run
     const { data: run, error: runErr } = await supabase
       .from("analysis_runs")
