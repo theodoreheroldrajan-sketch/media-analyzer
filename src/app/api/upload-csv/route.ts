@@ -9,6 +9,8 @@ type CSVUploadBody = {
   extraColumns: Record<string, unknown>[];
 };
 
+const MAX_ROWS = 10_000;
+
 export async function POST(request: NextRequest) {
   try {
     const body: CSVUploadBody = await request.json();
@@ -18,6 +20,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Missing projectId or empty rows" },
         { status: 400 }
+      );
+    }
+
+    if (rows.length > MAX_ROWS) {
+      return NextResponse.json(
+        {
+          error: `Too many rows (${rows.length}). Maximum is ${MAX_ROWS}.`,
+        },
+        { status: 413 }
       );
     }
 
