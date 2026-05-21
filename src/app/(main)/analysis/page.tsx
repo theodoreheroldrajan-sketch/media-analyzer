@@ -222,20 +222,18 @@ export default function AnalysisPage() {
               }));
             } else if (event.type === "progress") {
               setCurrentFile(event.filename ?? null);
-              setProgress({
+              setProgress((prev) => ({
                 completed: event.completed ?? 0,
                 failed: event.failed ?? 0,
                 total: event.total ?? 0,
                 totalCost: event.totalCost ?? 0,
                 totalInputTokens:
                   (event.totalInputTokens ?? 0) ||
-                  progress.totalInputTokens +
-                    (event.inputTokens ?? 0),
+                  prev.totalInputTokens + (event.inputTokens ?? 0),
                 totalOutputTokens:
                   (event.totalOutputTokens ?? 0) ||
-                  progress.totalOutputTokens +
-                    (event.outputTokens ?? 0),
-              });
+                  prev.totalOutputTokens + (event.outputTokens ?? 0),
+              }));
               setResults((prev) => [
                 ...prev,
                 {
