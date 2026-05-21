@@ -53,13 +53,9 @@ Why it doesn't matter here: PostCSS runs only at build time inside the Vercel bu
 
 Plan: wait for Next.js to bump its bundled PostCSS version (the fix is already published upstream as postcss@8.5.10+). Forcing the fix today would require `npm audit fix --force`, which proposes a Next.js downgrade to 9.3.x, a breaking change that's refused. Re-run `npm audit` after the next Next.js minor release.
 
-### No retry on transient Anthropic API failures
+### ~~No retry on transient Anthropic API failures~~ (Resolved)
 
-`src/app/api/analysis/route.ts` wraps each per-image extraction in a single try/catch with no exponential backoff or per-image retry. A 429 (rate limit), 503 (server overloaded), or transient network error fails the image immediately. The user loses tokens already paid for the failed call.
-
-Why it matters: on a 200-creative batch, even a 1% transient failure rate loses 2 creatives. There is no "re-extract failed images" affordance in the UI; the workaround is to re-run extraction on the whole project.
-
-Open. Contribution-friendly. The workaround is acceptable for single-operator use; the fix would be a clean PR.
+Resolved in PR #21. `withRetry` with exponential backoff (2 attempts, 1s base) now wraps each per-image Anthropic call. Transient errors (429, 5xx, network timeouts) are retried automatically. A `pMap` concurrency pool (5 workers) prevents rate-limit storms. Client errors (400, 401, 404) still fail immediately.
 
 ### No protection against concurrent extraction runs
 

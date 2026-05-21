@@ -21,7 +21,23 @@ import {
 export async function GET(request: NextRequest) {
   try {
     const projectId = request.nextUrl.searchParams.get("projectId");
-    const metric = (request.nextUrl.searchParams.get("metric") ?? "ctr") as MetricKey;
+    const VALID_METRICS: MetricKey[] = [
+      "ctr",
+      "cpc",
+      "cpa",
+      "cvr",
+      "roas",
+    ];
+    const rawMetric = request.nextUrl.searchParams.get("metric") ?? "ctr";
+    if (!VALID_METRICS.includes(rawMetric as MetricKey)) {
+      return NextResponse.json(
+        {
+          error: `Invalid metric "${rawMetric}". Valid: ${VALID_METRICS.join(", ")}`,
+        },
+        { status: 400 }
+      );
+    }
+    const metric = rawMetric as MetricKey;
 
     if (!projectId) {
       return NextResponse.json(
