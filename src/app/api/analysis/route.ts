@@ -529,6 +529,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ run: null, results: [] });
     }
 
+    // ── Stuck run cleanup: auto-fail runs stuck for > 15 minutes ──
+    if (run.status === "running" && run.started_at) {
+      const startedAt = new Date(run.started_at as string).getTime();
+      const fifteenMinutesMs = 15 * 60 * 1000;
+      if (Date.now() - startedAt > fifteenMinutesMs) {
+        await supabase
+          .from("analysis_runs")
+          .update({
+            status: "failed",
+            completed_at: new Date().toISOString(),
+          })
+          .eq("id", run.id);
+
+        run.status = "failed";
+        run.completed_at = new Date().toISOString();
+      }
+    }
+
     // Get results for this run
     const { data: results, error: resErr } = await supabase
       .from("extraction_results")
