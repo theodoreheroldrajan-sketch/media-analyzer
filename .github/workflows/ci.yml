@@ -29,6 +29,9 @@ jobs:
       - name: ESLint
         run: npx eslint .
 
+      - name: Unit tests
+        run: npm test
+
       - name: Next.js build
         run: npx next build
         env:
