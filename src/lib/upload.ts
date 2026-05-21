@@ -5,10 +5,18 @@ import Papa from "papaparse";
  * Upload a single creative image to Supabase Storage and insert a row
  * in the creatives table.
  */
+const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
+
 export async function uploadCreative(
   projectId: string,
   file: File
 ): Promise<{ id: string; filename: string } | { error: string }> {
+  if (file.size > MAX_FILE_SIZE) {
+    return {
+      error: `File "${file.name}" exceeds the 10 MB limit (${(file.size / 1024 / 1024).toFixed(1)} MB).`,
+    };
+  }
+
   const supabase = getSupabase();
 
   // Build storage path: {projectId}/{filename}
