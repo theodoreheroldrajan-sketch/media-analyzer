@@ -78,6 +78,57 @@ function getImageUrl(storagePath: string): string {
 }
 
 /**
+ * Retry a function on transient errors (rate limits, server errors, network).
+ * Client errors (400, 401, 404) fail immediately.
+ */
+async function withRetry<T>(
+  fn: () => Promise<T>,
+  maxAttempts = 2,
+  baseDelayMs = 1000
+): Promise<T> {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      return await fn();
+    } catch (err) {
+      const status = (err as { status?: number }).status ?? 0;
+      const message = err instanceof Error ? err.message : "";
+      const isRetryable =
+        status === 429 ||
+        status >= 500 ||
+        /timeout|ECONNRESET|ENOTFOUND|socket hang up/i.test(message);
+
+      if (!isRetryable || attempt === maxAttempts) throw err;
+
+      const delay = baseDelayMs * Math.pow(2, attempt - 1);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+  }
+  throw new Error("unreachable");
+}
+
+/**
+ * Process items concurrently with a worker pool.
+ * Each worker pulls the next item from a shared index.
+ */
+async function pMap<T>(
+  items: T[],
+  fn: (item: T) => Promise<void>,
+  concurrency: number
+): Promise<void> {
+  let i = 0;
+  const workers = Array.from(
+    { length: Math.min(concurrency, items.length) },
+    async () => {
+      while (i < items.length) {
+        const idx = i++;
+        await fn(items[idx]);
+      }
+    }
+  );
+  await Promise.all(workers);
+}
+
+/**
  * Analyse a single creative with Claude Vision.
  */
 async function analyseCreative(
@@ -273,88 +324,95 @@ export async function POST(request: NextRequest) {
         const INPUT_COST_PER_TOKEN = 0.8 / 1_000_000;
         const OUTPUT_COST_PER_TOKEN = 4.0 / 1_000_000;
 
-        for (const creative of creatives) {
-          try {
-            const imageUrl = getImageUrl(creative.storage_path);
+        // Process creatives concurrently (5 workers) with retry on transient errors
+        await pMap(
+          creatives,
+          async (creative) => {
+            try {
+              const result = await withRetry(() =>
+                analyseCreative(
+                  anthropic,
+                  getImageUrl(creative.storage_path),
+                  tool,
+                  brandContext
+                )
+              );
 
-            const result = await analyseCreative(
-              anthropic,
-              imageUrl,
-              tool,
-              brandContext
-            );
+              const cost =
+                result.inputTokens * INPUT_COST_PER_TOKEN +
+                result.outputTokens * OUTPUT_COST_PER_TOKEN;
 
-            const cost =
-              result.inputTokens * INPUT_COST_PER_TOKEN +
-              result.outputTokens * OUTPUT_COST_PER_TOKEN;
+              await supabase.from("extraction_results").insert({
+                run_id: run.id,
+                creative_id: creative.id,
+                extracted_variables: result.extracted,
+                input_tokens: result.inputTokens,
+                output_tokens: result.outputTokens,
+                cost,
+                duration_ms: result.durationMs,
+                status: "completed",
+              });
 
-            // Save extraction result
-            await supabase.from("extraction_results").insert({
-              run_id: run.id,
-              creative_id: creative.id,
-              extracted_variables: result.extracted,
-              input_tokens: result.inputTokens,
-              output_tokens: result.outputTokens,
-              cost,
-              duration_ms: result.durationMs,
-              status: "completed",
-            });
+              completed++;
+              totalInputTokens += result.inputTokens;
+              totalOutputTokens += result.outputTokens;
+              totalCost += cost;
 
-            completed++;
-            totalInputTokens += result.inputTokens;
-            totalOutputTokens += result.outputTokens;
-            totalCost += cost;
+              send({
+                type: "progress",
+                creativeId: creative.id,
+                filename: creative.filename,
+                completed,
+                failed,
+                total: creatives.length,
+                inputTokens: result.inputTokens,
+                outputTokens: result.outputTokens,
+                cost: Math.round(cost * 10000) / 10000,
+                totalCost: Math.round(totalCost * 10000) / 10000,
+                durationMs: result.durationMs,
+                extracted: result.extracted,
+              });
+            } catch (err) {
+              failed++;
+              const errorMsg =
+                err instanceof Error ? err.message : "Unknown error";
 
-            send({
-              type: "progress",
-              creativeId: creative.id,
-              filename: creative.filename,
-              completed,
-              failed,
-              total: creatives.length,
-              inputTokens: result.inputTokens,
-              outputTokens: result.outputTokens,
-              cost: Math.round(cost * 10000) / 10000,
-              totalCost: Math.round(totalCost * 10000) / 10000,
-              durationMs: result.durationMs,
-              extracted: result.extracted,
-            });
-          } catch (err) {
-            failed++;
-            const errorMsg =
-              err instanceof Error ? err.message : "Unknown error";
+              await supabase.from("extraction_results").insert({
+                run_id: run.id,
+                creative_id: creative.id,
+                extracted_variables: {},
+                status: "failed",
+                error_message: errorMsg,
+              });
 
-            await supabase.from("extraction_results").insert({
-              run_id: run.id,
-              creative_id: creative.id,
-              extracted_variables: {},
-              status: "failed",
-              error_message: errorMsg,
-            });
+              send({
+                type: "error",
+                creativeId: creative.id,
+                filename: creative.filename,
+                error: errorMsg,
+                completed,
+                failed,
+                total: creatives.length,
+              });
+            }
 
-            send({
-              type: "error",
-              creativeId: creative.id,
-              filename: creative.filename,
-              error: errorMsg,
-              completed,
-              failed,
-              total: creatives.length,
-            });
-          }
-
-          // Update run progress
-          await supabase
-            .from("analysis_runs")
-            .update({
-              completed_creatives: completed,
-              failed_creatives: failed,
-              total_input_tokens: totalInputTokens,
-              total_output_tokens: totalOutputTokens,
-              total_cost: totalCost,
-            })
-            .eq("id", run.id);
-        }
+            // Batch progress updates: every 5 creatives or on the last one
+            const processed = completed + failed;
+            if (processed % 5 === 0 || processed === creatives.length) {
+              await supabase
+                .from("analysis_runs")
+                .update({
+                  completed_creatives: completed,
+                  failed_creatives: failed,
+                  total_input_tokens: totalInputTokens,
+                  total_output_tokens: totalOutputTokens,
+                  total_cost: totalCost,
+                })
+                .eq("id", run.id);
+            }
+          },
+          5
+        );
 
         // Mark run as completed
         await supabase
